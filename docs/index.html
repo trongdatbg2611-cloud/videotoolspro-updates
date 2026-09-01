@@ -15,12 +15,18 @@
   Settings -> Pages -> Source: main branch, thư mục /docs.
   Địa chỉ sẽ là: https://trongdatbg2611-cloud.github.io/videotoolspro-updates/
 
-  SECRET KEY NẰM Ở ĐÂU: chỉ trong trình duyệt điện thoại anh (localStorage),
-  KHÔNG nằm trong file này, KHÔNG gửi đi đâu ngoài Supabase. Trang này công
-  khai nên tuyệt đối không ghi cứng secret key vào đây — ai mở cũng đọc được.
+  BẢO MẬT: trang này dùng "anon key" của Supabase (được thiết kế để công
+  khai, an toàn nhúng thẳng vào đây) — Supabase KHÔNG CHO PHÉP dùng secret
+  key thật từ trình duyệt (chặn thẳng, đã test thấy lỗi "Forbidden use of
+  secret API key in browser"). Vì vậy việc ghi dữ liệu (cấp key) đi qua 2 hàm
+  RPC phía Supabase (admin_issue_license/admin_list_licenses, security
+  definer) — hàm chỉ chạy khi đúng MẬT KHẨU QUẢN TRỊ (tự đặt riêng, KHÔNG
+  phải secret key thật của Supabase). Mật khẩu này lưu trong trình duyệt
+  điện thoại (localStorage), không ghi cứng ở đây.
 
-  MẤT ĐIỆN THOẠI thì vào Supabase Dashboard > Settings > API > Secret keys,
-  bấm Regenerate (hoặc xoá key đó, tạo key mới) là xong.
+  MẤT ĐIỆN THOẠI thì vào Supabase SQL Editor, đổi chuỗi mật khẩu trong 2 hàm
+  admin_issue_license/admin_list_licenses (CREATE OR REPLACE FUNCTION lại)
+  là xong — không cần đổi secret key thật của cả project.
 -->
 <style>
   :root{
@@ -133,20 +139,21 @@
 
   <!-- ── Cài đặt ── -->
   <div id="mCai" class="thẻ ẩn">
-    <label>Secret key Supabase (quyền ghi toàn bộ)</label>
-    <input id="token" type="password" placeholder="sb_secret_..." autocomplete="off">
+    <label>Mật khẩu quản trị</label>
+    <input id="token" type="password" placeholder="Mật khẩu do bạn tự đặt" autocomplete="off">
     <p class="ghi">
-      Lấy tại <b>Supabase Dashboard → Project Settings → API → Secret keys</b>.
-      Key này có toàn quyền ghi/xoá dữ liệu — chỉ dán ở đây, không gửi cho ai.
+      Mật khẩu riêng (không phải secret key Supabase thật) — hỏi lại người
+      thiết lập trang này nếu chưa có.
     </p>
 
     <button onclick="lưuCài()">Lưu</button>
-    <button class="phụ2" onclick="xoáToken()">Xoá secret key khỏi máy này</button>
+    <button class="phụ2" onclick="xoáToken()">Xoá mật khẩu khỏi máy này</button>
 
     <p class="ghi">
-      Secret key chỉ nằm trong trình duyệt điện thoại này, không gửi đi đâu
-      ngoài Supabase. <b>Mất điện thoại</b> thì vào Supabase Dashboard →
-      Settings → API → Secret keys, bấm huỷ/tạo lại key đó là xong.
+      Mật khẩu chỉ nằm trong trình duyệt điện thoại này, không gửi đi đâu
+      ngoài Supabase. <b>Mất điện thoại</b> thì đổi mật khẩu này trong 2 hàm
+      RPC (admin_issue_license/admin_list_licenses) trên Supabase là xong —
+      không ảnh hưởng gì tới secret key thật của cả project.
     </p>
     <div id="kqCai"></div>
   </div>
@@ -162,7 +169,7 @@
 
 const SUPABASE_URL = "https://qypvqwawwtnzaaqumqgs.supabase.co";
 const KEY_PREFIX = "VTP-";
-const K_TOKEN = "vtp_secret_key";
+const K_TOKEN = "vtp_admin_pw";
 let DS = null;              // danh sách license đang có (cache trong bộ nhớ)
 let LOAI = "app";
 
@@ -187,14 +194,14 @@ function chọnLoại(l){
 
 function hiệnKho(){
   $("kho").textContent = token()
-    ? `Kho: Supabase — đã có secret key`
-    : "Chưa cài đặt — mở tab Cài đặt để dán secret key";
+    ? `Kho: Supabase — đã có mật khẩu quản trị`
+    : "Chưa cài đặt — mở tab Cài đặt để nhập mật khẩu quản trị";
 }
 
 // ── Cài đặt ────────────────────────────────────────────────────────────────
 function lưuCài(){
   const t = $("token").value.trim();
-  if (!t) return báo("kqCai","lỗi","Dán secret key vào ô trên đã.");
+  if (!t) return báo("kqCai","lỗi","Nhập mật khẩu quản trị vào ô trên đã.");
   localStorage.setItem(K_TOKEN, t);
   $("token").value = "";
   DS = null;
@@ -205,24 +212,27 @@ function lưuCài(){
 function xoáToken(){
   localStorage.removeItem(K_TOKEN);
   DS = null; hiệnKho();
-  báo("kqCai","ok","Đã xoá secret key khỏi máy này.");
+  báo("kqCai","ok","Đã xoá mật khẩu khỏi máy này.");
 }
 
-// ── Gọi Supabase ───────────────────────────────────────────────────────────
-async function gọi(path, tuỳ = {}){
-  if (!token()) throw new Error("Chưa cài đặt secret key — mở tab Cài đặt.");
+// ── Gọi Supabase (qua hàm RPC, dùng anon key — an toàn nhúng công khai) ────
+const ANON_KEY = "sb_publishable_uSxG9VbAdEDr_Iwl_QJHQQ_vR3qVm_W";
+
+async function gọiRPC(tên, thamSố = {}){
+  if (!token()) throw new Error("Chưa cài đặt mật khẩu quản trị — mở tab Cài đặt.");
   const h = {
-    "apikey": token(),
-    "Authorization": "Bearer " + token(),
+    "apikey": ANON_KEY,
+    "Authorization": "Bearer " + ANON_KEY,
     "Content-Type": "application/json",
-    ...(tuỳ.headers || {}),
   };
-  const r = await fetch(SUPABASE_URL + path, {...tuỳ, headers: h, cache: "no-store"});
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${tên}`, {
+    method: "POST",
+    headers: h,
+    cache: "no-store",
+    body: JSON.stringify({...thamSố, p_admin_pw: token()}),
+  });
   if (!r.ok) {
     let m = `Supabase trả về ${r.status}`;
-    if (r.status === 401) m = "Secret key sai hoặc đã bị huỷ — vào Cài đặt nhập lại.";
-    if (r.status === 403) m = "Secret key không đủ quyền.";
-    if (r.status === 404) m = "Không thấy bảng licenses — kiểm tra lại project Supabase.";
     try { const j = await r.json(); if (j.message) m += ` (${j.message})`; } catch {}
     throw new Error(m);
   }
@@ -231,7 +241,12 @@ async function gọi(path, tuỳ = {}){
 }
 
 async function tảiDS(){
-  DS = await gọi("/rest/v1/licenses?select=*&order=created_at.desc&limit=500");
+  const r = await gọiRPC("admin_list_licenses");
+  if (r && r.length === 0 && token()) {
+    // Có thể do sai mật khẩu (hàm trả rỗng thay vì lỗi) — không chắc chắn,
+    // chỉ là danh sách trống thật cũng vậy, nên không báo lỗi ở đây.
+  }
+  DS = r || [];
   return DS;
 }
 
@@ -287,34 +302,28 @@ async function cấpKey(){
       "hoặc để trống nếu không khoá máy.");
   }
   if (!ten) return báo("kqCap","lỗi","Điền tên khách để sau còn tra cứu được.");
-  if (!token()) return báo("kqCap","lỗi","Chưa có secret key — mở tab <b>Cài đặt</b>.");
+  if (!token()) return báo("kqCap","lỗi","Chưa có mật khẩu quản trị — mở tab <b>Cài đặt</b>.");
 
   $("nutCap").disabled = true;
   $("nutCap").textContent = "Đang cấp...";
   try {
-    // Máy này đã có key còn hạn thì DÙNG LẠI. Cấp trùng chỉ làm rối danh sách.
-    if (hw) {
-      const trùng = await gọi(`/rest/v1/licenses?hardware_id=eq.${hw}&revoked=eq.false&select=*`);
-      const cònHạn = (trùng || []).find(v => !v.expire_date || v.expire_date >= hômNay());
-      if (cònHạn) {
-        return hiệnKey(cònHạn.key_id,
-          `Máy này <b>đã có key</b> còn hạn tới ${cònHạn.expire_date || "vĩnh viễn"}` +
-          `${cònHạn.owner ? " — " + cònHạn.owner : ""}. Không cấp thêm.`);
-      }
-    }
-
     const mã = sinhMã();
     const expire_date = hạn(ngày);
-    await gọi("/rest/v1/licenses", {
-      method: "POST",
-      headers: {"Prefer": "return=representation"},
-      body: JSON.stringify({
-        key_id: mã, hardware_id: hw, owner: ten, license_type: LOAI,
-        expire_date, issued: hômNay(),
-      }),
+    const kq = await gọiRPC("admin_issue_license", {
+      p_key: mã, p_hwid: hw || null, p_owner: ten, p_type: LOAI, p_expire_date: expire_date,
     });
+
+    if (!kq || kq.error === "wrong_password") {
+      return báo("kqCap","lỗi","Sai mật khẩu quản trị — vào Cài đặt kiểm tra lại.");
+    }
+    if (kq.reused) {
+      return hiệnKey(kq.key_id,
+        `Máy này <b>đã có key</b> còn hạn tới ${kq.expire_date || "vĩnh viễn"}` +
+        `${kq.owner ? " — " + kq.owner : ""}. Không cấp thêm.`);
+    }
+
     DS = null;
-    hiệnKey(mã, `Đã lưu lên Supabase. ${expire_date ? "Hết hạn " + expire_date : "Vĩnh viễn"}.`);
+    hiệnKey(kq.key_id, `Đã lưu lên Supabase. ${expire_date ? "Hết hạn " + expire_date : "Vĩnh viễn"}.`);
     $("hw").value = ""; $("ten").value = "";
   } catch (e) {
     báo("kqCap","lỗi", e.message);
