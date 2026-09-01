@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cấp key VideoToolsPro</title>
+<!--
+  trang_cap_key_vtp.html — Cấp license key VideoToolsPro từ điện thoại
+  =====================================================================
+  ĐẶT Ở ĐÂU: đổi tên thành docs/index.html trong repo
+  trongdatbg2611-cloud/videotoolspro-updates, rồi bật
+  Settings -> Pages -> Source: main branch, thư mục /docs.
+  Địa chỉ sẽ là: https://trongdatbg2611-cloud.github.io/videotoolspro-updates/
+
+  SECRET KEY NẰM Ở ĐÂU: chỉ trong trình duyệt điện thoại anh (localStorage),
+  KHÔNG nằm trong file này, KHÔNG gửi đi đâu ngoài Supabase. Trang này công
+  khai nên tuyệt đối không ghi cứng secret key vào đây — ai mở cũng đọc được.
+
+  MẤT ĐIỆN THOẠI thì vào Supabase Dashboard > Settings > API > Secret keys,
+  bấm Regenerate (hoặc xoá key đó, tạo key mới) là xong.
+-->
+<style>
+  :root{
+    --nen:#111827; --the:#1f2937; --vien:#374151; --o:#0d1117;
+    --xanh:#059669; --xanh-dam:#047857; --chu:#f9fafb; --mo:#9ca3af;
+    --do:#ef4444; --vang:#f59e0b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;background:var(--nen);color:var(--chu);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .bọc{max-width:520px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:8px 0 2px;display:flex;align-items:center;gap:8px}
+  .phụ{color:var(--mo);font-size:13px;margin:0 0 18px}
+  .thẻ{background:var(--the);border-radius:14px;padding:16px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--mo);margin:12px 0 6px}
+  input,select{
+    width:100%;padding:14px;font-size:16px;border-radius:10px;
+    border:1px solid var(--vien);background:var(--o);color:var(--chu);
+  }
+  input:focus,select:focus{outline:none;border-color:var(--xanh)}
+  button{
+    width:100%;padding:15px;font-size:16px;font-weight:600;border:0;
+    border-radius:10px;background:var(--xanh);color:#fff;margin-top:14px;
+  }
+  button:active{background:var(--xanh-dam)}
+  button:disabled{opacity:.5}
+  button.phụ2{background:transparent;border:1px solid var(--vien);color:var(--mo);
+    font-weight:400;padding:12px;font-size:14px}
+  .hàng{display:flex;gap:8px}
+  .hàng button{margin-top:0;flex:0 0 auto;width:auto;padding:14px 16px}
+  .hàng input{flex:1}
+  .seg{display:flex;gap:8px;margin-top:4px}
+  .seg button{margin:0;flex:1;background:var(--o);border:1px solid var(--vien);
+    color:var(--mo);font-size:14px;padding:12px}
+  .seg button.đang{background:var(--xanh);border-color:var(--xanh);color:#fff}
+  .key{
+    font:700 24px/1.3 ui-monospace,"SF Mono",Consolas,monospace;
+    letter-spacing:1px;color:var(--xanh);text-align:center;
+    padding:18px 8px;background:var(--o);border-radius:10px;
+    border:1px dashed var(--xanh);word-break:break-all;
+  }
+  .báo{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px}
+  .báo.lỗi{background:#7f1d1d33;border:1px solid var(--do);color:#fca5a5}
+  .báo.ok{background:#064e3b33;border:1px solid var(--xanh);color:#6ee7b7}
+  .báo.chờ{background:#78350f33;border:1px solid var(--vang);color:#fcd34d}
+  .dòng{display:flex;justify-content:space-between;gap:10px;
+    padding:11px 0;border-bottom:1px solid var(--vien);font-size:14px}
+  .dòng:last-child{border-bottom:0}
+  .dòng b{font:600 14px ui-monospace,Consolas,monospace;color:var(--xanh)}
+  .dòng small{display:block;color:var(--mo);font-size:12px}
+  .tab{display:flex;gap:6px;margin-bottom:14px}
+  .tab button{margin:0;background:var(--the);color:var(--mo);font-size:14px;padding:11px}
+  .tab button.đang{background:var(--xanh);color:#fff}
+  .ẩn{display:none}
+  .ghi{font-size:12px;color:var(--mo);margin-top:10px;line-height:1.5}
+  a{color:var(--xanh)}
+</style>
+</head>
+<body>
+<div class="bọc">
+
+  <h1>🔑 Cấp key VideoToolsPro</h1>
+  <p class="phụ" id="kho">—</p>
+
+  <div class="tab">
+    <button id="tabCap" class="đang" onclick="đổiTab('cap')">Cấp key</button>
+    <button id="tabTra" onclick="đổiTab('tra')">Tra cứu</button>
+    <button id="tabCai" onclick="đổiTab('cai')">Cài đặt</button>
+  </div>
+
+  <!-- ── Cấp key ── -->
+  <div id="mCap" class="thẻ">
+    <label>Mã máy của khách (để trống = không khoá máy)</label>
+    <div class="hàng">
+      <input id="hw" placeholder="VD: A1B2C3D4E5F6G7H8"
+             autocapitalize="characters" autocomplete="off" spellcheck="false">
+      <button class="phụ2" onclick="dánID()">Dán</button>
+    </div>
+
+    <label>Tên khách</label>
+    <input id="ten" placeholder="VD: Anh Nam - Bắc Giang" autocomplete="off">
+
+    <label>Loại license</label>
+    <div class="seg" id="loai">
+      <button class="đang" onclick="chọnLoại('app')">App</button>
+      <button onclick="chọnLoại('sub')">Sub</button>
+    </div>
+
+    <label>Thời hạn</label>
+    <select id="thang">
+      <option value="30">30 ngày (dùng thử)</option>
+      <option value="90">90 ngày</option>
+      <option value="365" selected>1 năm</option>
+      <option value="0">Vĩnh viễn</option>
+    </select>
+
+    <button id="nutCap" onclick="cấpKey()">Cấp key</button>
+    <div id="kqCap"></div>
+  </div>
+
+  <!-- ── Tra cứu ── -->
+  <div id="mTra" class="thẻ ẩn">
+    <label>Tìm theo tên khách hoặc mã máy</label>
+    <input id="tim" placeholder="Gõ vài chữ là đủ" oninput="lọc()" autocomplete="off">
+    <div id="dsTra" style="margin-top:12px"></div>
+  </div>
+
+  <!-- ── Cài đặt ── -->
+  <div id="mCai" class="thẻ ẩn">
+    <label>Secret key Supabase (quyền ghi toàn bộ)</label>
+    <input id="token" type="password" placeholder="sb_secret_..." autocomplete="off">
+    <p class="ghi">
+      Lấy tại <b>Supabase Dashboard → Project Settings → API → Secret keys</b>.
+      Key này có toàn quyền ghi/xoá dữ liệu — chỉ dán ở đây, không gửi cho ai.
+    </p>
+
+    <button onclick="lưuCài()">Lưu</button>
+    <button class="phụ2" onclick="xoáToken()">Xoá secret key khỏi máy này</button>
+
+    <p class="ghi">
+      Secret key chỉ nằm trong trình duyệt điện thoại này, không gửi đi đâu
+      ngoài Supabase. <b>Mất điện thoại</b> thì vào Supabase Dashboard →
+      Settings → API → Secret keys, bấm huỷ/tạo lại key đó là xong.
+    </p>
+    <div id="kqCai"></div>
+  </div>
+
+  <p class="ghi">
+    Thêm vào màn hình chính: Safari bấm <b>Chia sẻ → Thêm vào MH chính</b>,
+    Chrome bấm <b>⋮ → Thêm vào màn hình chính</b>.
+  </p>
+</div>
+
+<script>
+"use strict";
+
+const SUPABASE_URL = "https://qypvqwawwtnzaaqumqgs.supabase.co";
+const KEY_PREFIX = "VTP-";
+const K_TOKEN = "vtp_secret_key";
+let DS = null;              // danh sách license đang có (cache trong bộ nhớ)
+let LOAI = "app";
+
+const $ = id => document.getElementById(id);
+const token = () => (localStorage.getItem(K_TOKEN) || "").trim();
+
+function báo(ô, loại, html){ $(ô).innerHTML = `<div class="báo ${loại}">${html}</div>`; }
+function xoáBáo(ô){ $(ô).innerHTML = ""; }
+
+function đổiTab(t){
+  for (const [n, m, b] of [["cap","mCap","tabCap"],["tra","mTra","tabTra"],["cai","mCai","tabCai"]]) {
+    $(m).classList.toggle("ẩn", n !== t);
+    $(b).classList.toggle("đang", n === t);
+  }
+  if (t === "tra") tảiDS().then(vẽDS).catch(e => báo("dsTra","lỗi", e.message));
+}
+
+function chọnLoại(l){
+  LOAI = l;
+  for (const b of $("loai").children) b.classList.toggle("đang", b.textContent.toLowerCase() === l);
+}
+
+function hiệnKho(){
+  $("kho").textContent = token()
+    ? `Kho: Supabase — đã có secret key`
+    : "Chưa cài đặt — mở tab Cài đặt để dán secret key";
+}
+
+// ── Cài đặt ────────────────────────────────────────────────────────────────
+function lưuCài(){
+  const t = $("token").value.trim();
+  if (!t) return báo("kqCai","lỗi","Dán secret key vào ô trên đã.");
+  localStorage.setItem(K_TOKEN, t);
+  $("token").value = "";
+  DS = null;
+  hiệnKho();
+  báo("kqCai","ok","Đã lưu. Thử bấm tab <b>Tra cứu</b> xem có đọc được danh sách không.");
+}
+
+function xoáToken(){
+  localStorage.removeItem(K_TOKEN);
+  DS = null; hiệnKho();
+  báo("kqCai","ok","Đã xoá secret key khỏi máy này.");
+}
+
+// ── Gọi Supabase ───────────────────────────────────────────────────────────
+async function gọi(path, tuỳ = {}){
+  if (!token()) throw new Error("Chưa cài đặt secret key — mở tab Cài đặt.");
+  const h = {
+    "apikey": token(),
+    "Authorization": "Bearer " + token(),
+    "Content-Type": "application/json",
+    ...(tuỳ.headers || {}),
+  };
+  const r = await fetch(SUPABASE_URL + path, {...tuỳ, headers: h, cache: "no-store"});
+  if (!r.ok) {
+    let m = `Supabase trả về ${r.status}`;
+    if (r.status === 401) m = "Secret key sai hoặc đã bị huỷ — vào Cài đặt nhập lại.";
+    if (r.status === 403) m = "Secret key không đủ quyền.";
+    if (r.status === 404) m = "Không thấy bảng licenses — kiểm tra lại project Supabase.";
+    try { const j = await r.json(); if (j.message) m += ` (${j.message})`; } catch {}
+    throw new Error(m);
+  }
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+async function tảiDS(){
+  DS = await gọi("/rest/v1/licenses?select=*&order=created_at.desc&limit=500");
+  return DS;
+}
+
+// ── Cấp key ────────────────────────────────────────────────────────────────
+const CHỮ = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+function sinhMã(){
+  let k = "";
+  const b = new Uint32Array(8);
+  crypto.getRandomValues(b);
+  for (let i = 0; i < 8; i++) k += CHỮ[b[i] % CHỮ.length];
+  return k;
+}
+
+function hạn(ngày){
+  if (ngày === 0) return null;               // vĩnh viễn
+  const d = new Date();
+  d.setDate(d.getDate() + ngày);
+  return d.toISOString().slice(0, 10);
+}
+const hômNay = () => new Date().toISOString().slice(0, 10);
+
+async function dánID(){
+  try {
+    const t = await navigator.clipboard.readText();
+    if (t) { $("hw").value = t.trim().toUpperCase(); xoáBáo("kqCap"); }
+  } catch {
+    báo("kqCap","chờ","Trình duyệt không cho đọc clipboard — dán tay vào ô trên.");
+  }
+}
+
+function hiệnKey(mã, phụ){
+  $("kqCap").innerHTML =
+    `<div class="key" id="oKey">${KEY_PREFIX}${mã}</div>
+     <button onclick="chép('${KEY_PREFIX}${mã}')">Copy để gửi Zalo</button>
+     <div class="báo ok">${phụ}</div>`;
+}
+
+async function chép(mã){
+  try { await navigator.clipboard.writeText(mã); alert("Đã copy: " + mã); }
+  catch { alert("Chạm giữ vào mã để copy tay."); }
+}
+
+async function cấpKey(){
+  const hw  = $("hw").value.trim().toUpperCase();
+  const ten = $("ten").value.trim();
+  const ngày = parseInt($("thang").value, 10);
+  xoáBáo("kqCap");
+
+  if (hw && !/^[0-9A-F]{16}$/.test(hw)) {
+    return báo("kqCap","lỗi",
+      "Mã máy sai định dạng.<br>Phải là <b>16 ký tự hex</b> (0-9, A-F). " +
+      "Bảo khách bấm nút <b>Copy HWID</b> trong app rồi gửi nguyên vẹn, " +
+      "hoặc để trống nếu không khoá máy.");
+  }
+  if (!ten) return báo("kqCap","lỗi","Điền tên khách để sau còn tra cứu được.");
+  if (!token()) return báo("kqCap","lỗi","Chưa có secret key — mở tab <b>Cài đặt</b>.");
+
+  $("nutCap").disabled = true;
+  $("nutCap").textContent = "Đang cấp...";
+  try {
+    // Máy này đã có key còn hạn thì DÙNG LẠI. Cấp trùng chỉ làm rối danh sách.
+    if (hw) {
+      const trùng = await gọi(`/rest/v1/licenses?hardware_id=eq.${hw}&revoked=eq.false&select=*`);
+      const cònHạn = (trùng || []).find(v => !v.expire_date || v.expire_date >= hômNay());
+      if (cònHạn) {
+        return hiệnKey(cònHạn.key_id,
+          `Máy này <b>đã có key</b> còn hạn tới ${cònHạn.expire_date || "vĩnh viễn"}` +
+          `${cònHạn.owner ? " — " + cònHạn.owner : ""}. Không cấp thêm.`);
+      }
+    }
+
+    const mã = sinhMã();
+    const expire_date = hạn(ngày);
+    await gọi("/rest/v1/licenses", {
+      method: "POST",
+      headers: {"Prefer": "return=representation"},
+      body: JSON.stringify({
+        key_id: mã, hardware_id: hw, owner: ten, license_type: LOAI,
+        expire_date, issued: hômNay(),
+      }),
+    });
+    DS = null;
+    hiệnKey(mã, `Đã lưu lên Supabase. ${expire_date ? "Hết hạn " + expire_date : "Vĩnh viễn"}.`);
+    $("hw").value = ""; $("ten").value = "";
+  } catch (e) {
+    báo("kqCap","lỗi", e.message);
+  } finally {
+    $("nutCap").disabled = false;
+    $("nutCap").textContent = "Cấp key";
+  }
+}
+
+// ── Tra cứu ────────────────────────────────────────────────────────────────
+function vẽDS(){
+  const q = $("tim").value.trim().toLowerCase();
+  const ds = (DS || [])
+    .filter(v => !q ||
+      (v.owner || "").toLowerCase().includes(q) ||
+      (v.hardware_id || "").toLowerCase().includes(q) ||
+      (v.key_id || "").toLowerCase().includes(q))
+    .slice(0, 60);
+
+  if (!ds.length) return $("dsTra").innerHTML =
+    `<div class="báo chờ">Không có key nào khớp.</div>`;
+
+  $("dsTra").innerHTML = ds.map(v => {
+    const hết = v.expire_date && v.expire_date < hômNay();
+    const trạngThái = v.revoked ? "đã thu hồi" : (hết ? "hết hạn" : "còn hạn");
+    const màu = v.revoked || hết ? "var(--do)" : "var(--mo)";
+    return `<div class="dòng">
+      <div>${v.owner || "—"} <small style="color:var(--mo)">(${v.license_type || "app"})</small>
+        <small>${v.hardware_id || "chưa gắn máy"}</small>
+        <small style="color:${màu}">${trạngThái} ${v.expire_date || "vĩnh viễn"}</small>
+      </div>
+      <b>${KEY_PREFIX}${v.key_id}</b>
+    </div>`;
+  }).join("");
+}
+function lọc(){ if (DS) vẽDS(); }
+
+// ── Khởi động ──────────────────────────────────────────────────────────────
+hiệnKho();
+if (!token()) đổiTab("cai");
+</script>
+</body>
+</html>
