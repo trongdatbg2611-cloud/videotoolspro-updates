@@ -1,1 +1,8 @@
-{}
+{
+  "TESTKEY1": {
+    "hardware_id": "4041C611254305E2",
+    "owner": "Test Verification",
+    "expire_date": "2099-12-31",
+    "issued": "2026-09-01"
+  }
+}
