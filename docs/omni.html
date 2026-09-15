@@ -124,20 +124,16 @@
   <!-- ── Cấp key ── -->
   <div id="mCap" class="thẻ">
     <label>Gmail khách hàng (bắt buộc)</label>
-    <input id="email" placeholder="khachhang@gmail.com" autocomplete="off" spellcheck="false">
+    <input id="email" placeholder="khachhang@gmail.com" autocomplete="off" spellcheck="false" oninput="kiểmTraEmailCấp()">
+    <div id="soKeyEmail" class="ghi" style="margin-top:6px"></div>
 
-    <label>Gói (tier)</label>
-    <div class="seg" id="tier">
-      <button onclick="chọnTier('free')">Free</button>
-      <button onclick="chọnTier('pro')">Pro</button>
-      <button class="đang" onclick="chọnTier('ultra')">Ultra</button>
-    </div>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:normal;font-weight:500;font-size:13.5px;color:var(--chu)">
+      <input type="checkbox" id="forceNew" style="width:auto;padding:0" onchange="kiểmTraEmailCấp()">
+      Cấp thêm key mới dù email này đã có key còn hạn (dùng khi khách cần thêm 1 máy song song)
+    </label>
 
     <label>SKU (tên gói hiển thị trong app)</label>
     <input id="sku" placeholder="VD: Veo 3" value="Veo 3" autocomplete="off">
-
-    <label>Số credit</label>
-    <input type="number" id="credits" value="5000" min="0" step="1" inputmode="numeric">
 
     <label>Thời hạn (số ngày, tự nhập được)</label>
     <input type="number" id="ngay" value="30" min="0" step="1" inputmode="numeric" placeholder="VD: 30">
@@ -222,7 +218,6 @@ const ANON_KEY = "sb_publishable_uSxG9VbAdEDr_Iwl_QJHQQ_vR3qVm_W";
 const KEY_PREFIX = "OMNI-";
 const K_TOKEN = "omni_admin_pw";
 let DS = null;           // cache danh sách license
-let TIER = "ultra";
 let chọnThuKey = null;
 let hẹnGiờTk = null;
 
@@ -242,13 +237,28 @@ function đổiTab(t){
   if (t === "tk") { tảiThốngKê(); hẹnGiờTk = setInterval(tảiThốngKê, 30000); }
 }
 
-function chọnTier(tier){
-  TIER = tier;
-  for (const b of $("tier").children) b.classList.toggle("đang", b.textContent.toLowerCase() === tier);
-  const mặc = { free: ["", 0], pro: ["Veo 3", 1000], ultra: ["Veo 3", 5000] };
-  const [sku, credits] = mặc[tier] || ["", 0];
-  if (!$("sku").value || Object.values(mặc).some(m => m[0] === $("sku").value)) $("sku").value = sku;
-  $("credits").value = credits;
+// Đếm số key đang có (chưa thu hồi) cho Gmail đang gõ trong ô Cấp key —
+// vừa để owner biết khách này đã có mấy key, vừa cảnh báo trước khi bấm
+// "Cấp key" nếu quên tích ô "Cấp thêm key mới" (2026-09-16, tránh nhầm
+// tưởng cấp mới nhưng thật ra hệ thống chỉ trả lại key cũ do đã có sẵn).
+let _kiểmTraEmailĐang = false;
+async function kiểmTraEmailCấp(){
+  const email = $("email").value.trim().toLowerCase();
+  const forceNew = $("forceNew").checked;
+  if (!email || !email.includes("@")) { $("soKeyEmail").textContent = ""; return; }
+  if (_kiểmTraEmailĐang) return;
+  _kiểmTraEmailĐang = true;
+  try {
+    if (!token()) { $("soKeyEmail").textContent = ""; return; }
+    const ds = await tảiDS();
+    const của = (ds || []).filter(v => (v.owner_email||"").toLowerCase() === email && !v.revoked);
+    if (!của.length) { $("soKeyEmail").textContent = ""; return; }
+    const ds2 = của.map(v => v.key_id).join(", ");
+    $("soKeyEmail").textContent = forceNew
+      ? `ℹ️ Email này đã có ${của.length} key còn hạn (${ds2}) — sẽ cấp THÊM 1 key mới, các key cũ vẫn dùng được song song.`
+      : `ℹ️ Email này đã có ${của.length} key còn hạn (${ds2}) — bấm "Cấp key" sẽ chỉ trả lại key này, không tạo thêm. Tích ô trên nếu muốn cấp thêm key mới.`;
+  } catch { /* im lặng, không phải lỗi quan trọng để chặn cấp key */ }
+  finally { _kiểmTraEmailĐang = false; }
 }
 
 function hiệnKho(){
@@ -326,9 +336,9 @@ async function chép(mã){
 async function cấpKey(){
   const email = $("email").value.trim().toLowerCase();
   const sku = $("sku").value.trim();
-  const credits = parseInt($("credits").value, 10) || 0;
   const ngày = parseInt($("ngay").value, 10) || 0;
   const deviceId = $("deviceId").value.trim().toUpperCase();
+  const forceNew = $("forceNew").checked;
   xoáBáo("kqCap");
 
   if (!email || !email.includes("@")) return báo("kqCap","lỗi","Nhập đúng Gmail của khách hàng.");
@@ -338,9 +348,13 @@ async function cấpKey(){
   $("nutCap").textContent = "Đang cấp...";
   try {
     const mã = sinhMã();
+    // Không còn gửi p_credits/p_tier — app giờ luôn ưu tiên đọc credit/tier
+    // THẬT từ chính tài khoản Google Flow của khách, 2 số này (default 0/
+    // "ultra" phía Supabase) chỉ còn là fallback tạm trước khi khách đăng
+    // nhập Flow lần đầu.
     const kq = await gọiRPC("omni_admin_issue_license", {
       p_key: KEY_PREFIX + mã, p_email: email, p_days: ngày,
-      p_credits: credits, p_tier: TIER, p_sku: sku, p_device_id: deviceId,
+      p_sku: sku, p_device_id: deviceId, p_force_new: forceNew,
     });
 
     if (!kq || kq.error === "wrong_password") {
@@ -349,10 +363,11 @@ async function cấpKey(){
     if (kq.reused) {
       const key = String(kq.key_id).replace(/^OMNI-/, "");
       return hiệnKey(key,
-        `Gmail này <b>đã có key</b> còn hạn tới ${kq.expire_date || "vĩnh viễn"}. Không cấp thêm.`);
+        `Gmail này <b>đã có key</b> còn hạn tới ${kq.expire_date || "vĩnh viễn"}. Không cấp thêm (tích ô "Cấp thêm key mới" ở trên nếu khách cần thêm 1 máy song song).`);
     }
 
     DS = null;
+    kiểmTraEmailCấp();
     hiệnKey(mã, `Đã lưu lên Supabase cho <b>${email}</b>. ${ngày ? "Hết hạn sau " + ngày + " ngày" : "Vĩnh viễn"}.`);
   } catch (e) {
     báo("kqCap","lỗi", e.message);
@@ -473,7 +488,6 @@ async function tảiThốngKê(){
 
 // ── Khởi động ──────────────────────────────────────────────────────────────
 hiệnKho();
-chọnTier("ultra");
 if (!token()) đổiTab("cai");
 </script>
 </body>
