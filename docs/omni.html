@@ -82,11 +82,12 @@
   .báo.lỗi{background:#7f1d1d33;border:1px solid var(--do);color:#fca5a5}
   .báo.ok{background:#064e3b33;border:1px solid var(--luc);color:#6ee7b7}
   .báo.chờ{background:#78350f33;border:1px solid var(--vang);color:#fcd34d}
-  .dòng{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;
+  .dòng{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start;
     padding:13px 0;border-bottom:1px solid var(--vien);font-size:13.5px}
   .dòng:last-child{border-bottom:0}
+  .dòng>div{flex:1 1 200px;min-width:0}
   .dòng b{font:600 13px ui-monospace,Consolas,monospace;color:var(--xanh);white-space:nowrap}
-  .dòng small{display:block;color:var(--mo);font-size:11.5px;margin-top:2px}
+  .dòng small{display:block;color:var(--mo);font-size:11.5px;margin-top:2px;overflow-wrap:anywhere}
   .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;
     text-transform:uppercase;letter-spacing:.03em;margin-left:6px}
   .badge.free{background:#ffffff14;color:var(--mo)}
