@@ -147,8 +147,8 @@
       <button type="button" class="phụ2" onclick="đặtNgày(0)">Vĩnh viễn</button>
     </div>
 
-    <label>Mã máy (để trống = không khoá máy)</label>
-    <input id="deviceId" placeholder="Để trống nếu không cần khoá máy" autocomplete="off" spellcheck="false">
+    <label>Mã máy (để trống = tự khoá vào máy đầu tiên kích hoạt)</label>
+    <input id="deviceId" placeholder="Để trống — hệ thống tự khoá vào máy khách kích hoạt lần đầu" autocomplete="off" spellcheck="false">
 
     <button id="nutCap" onclick="cấpKey()">Cấp key</button>
     <div id="kqCap"></div>
@@ -410,16 +410,20 @@ function tierBadge(v){
 }
 const hômNay = () => new Date().toISOString().slice(0, 10);
 
-function dòngHtml(v, chọnĐược){
+function dòngHtml(v, chọnĐược, hienGỡKhoá){
   const hết = v.expire_date && v.expire_date < hômNay();
   const trạngThái = v.revoked ? "đã thu hồi" : (hết ? "hết hạn" : "còn hạn");
   const màu = v.revoked || hết ? "var(--do)" : "var(--luc)";
   const online = v.last_heartbeat && (Date.now() - new Date(v.last_heartbeat).getTime()) < 3 * 60 * 1000;
   const click = chọnĐược ? `onclick="chọnDòngThu('${v.key_id}')" style="cursor:pointer"` : "";
+  const nutGỡ = (hienGỡKhoá && v.device_id && !v.revoked)
+    ? `<button type="button" class="phụ2" style="margin-top:6px" onclick="gỡKhoáMáy('${v.key_id}')">🔓 Gỡ khoá máy</button>`
+    : "";
   return `<div class="dòng" data-key="${v.key_id}" ${click}>
     <div>${v.owner_email || "—"} ${tierBadge(v)} ${online ? '<span style="color:var(--luc)">● online</span>' : ""}
       <small>${v.credits ?? 0} credit · ${v.sku || "—"}${v.device_id ? " · máy: " + v.device_id : ""}</small>
       <small style="color:${màu}">${trạngThái} — ${v.expire_date || "vĩnh viễn"}</small>
+      ${nutGỡ}
     </div>
     <b>${v.key_id}</b>
   </div>`;
@@ -431,9 +435,24 @@ function vẽDsDs(){
     .filter(v => !q || (v.owner_email||"").toLowerCase().includes(q) || (v.key_id||"").toLowerCase().includes(q))
     .slice(0, 100);
   if (!ds.length) { $("dsDs").innerHTML = `<div class="báo chờ">Không có key nào khớp.</div>`; return; }
-  $("dsDs").innerHTML = ds.map(v => dòngHtml(v, false)).join("");
+  $("dsDs").innerHTML = ds.map(v => dòngHtml(v, false, true)).join("");
 }
 function lọcDs(){ if (DS) vẽDsDs(); }
+
+async function gỡKhoáMáy(keyId){
+  if (!confirm(`Gỡ khoá máy cho key ${keyId}?\n\nKey sẽ dùng được trên máy tiếp theo kích hoạt (máy cũ không còn tự động vào được nữa).`)) return;
+  try {
+    const kq = await gọiRPC("omni_admin_unlock_device", { p_key_id: keyId });
+    if (!kq || kq.error === "wrong_password") throw new Error("Sai mật khẩu quản trị.");
+    if (kq.error === "not_found") throw new Error("Không tìm thấy key này.");
+    DS = null;
+    await tảiDS(true);
+    vẽDsDs();
+    báo("dsDs", "ok", `Đã gỡ khoá máy cho ${keyId}.`);
+  } catch (e) {
+    báo("dsDs", "lỗi", e.message);
+  }
+}
 
 // ── Thống kê ───────────────────────────────────────────────────────────────
 async function tảiThốngKê(){
