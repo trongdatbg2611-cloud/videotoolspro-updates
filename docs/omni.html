@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Quản trị license — OmniAI Max</title>
+<!--
+  omni_admin_dashboard.html — Cấp / thu hồi / theo dõi license OmniAI Max
+  =====================================================================
+  CHẠY TRƯỚC: mở omni_supabase_setup.sql trong Supabase SQL Editor, đổi
+  chuỗi 'CHANGE_ME_ADMIN_PASSWORD' thành mật khẩu bạn tự chọn rồi Run.
+
+  MỞ TRANG NÀY: double-click file này (mở thẳng bằng trình duyệt, không
+  cần server) hoặc host lên GitHub Pages nếu muốn dùng từ điện thoại
+  (giống cách đã làm với trang_cap_key_vtp.html của VideoToolsPro).
+
+  BẢO MẬT: trang này dùng "anon key" của Supabase (an toàn nhúng công
+  khai, CHÍNH Supabase chặn cứng việc dùng secret key thật trong trình
+  duyệt). Mọi thao tác ghi (cấp/thu hồi key) đi qua các hàm RPC
+  omni_admin_* (security definer) — chỉ chạy khi đúng MẬT KHẨU QUẢN TRỊ
+  tự đặt trong file .sql, không phải secret key Supabase thật. Mật khẩu
+  lưu trong localStorage máy này, không ghi cứng ở đây.
+
+  MẤT MÁY/LỘ MẬT KHẨU: vào Supabase SQL Editor, CREATE OR REPLACE lại 3
+  hàm omni_admin_issue_license/omni_admin_list_licenses/
+  omni_admin_revoke_license với chuỗi mật khẩu mới — không ảnh hưởng gì
+  tới secret key thật của cả project hay tới VideoToolsPro.
+-->
+<style>
+  :root{
+    --nen:#0a0a0f; --the:#15151f; --vien:#2a2a3a; --o:#0d0d14;
+    --xanh:#4d80ff; --xanh-dam:#3a68e0; --tim:#8c59ff; --chu:#f5f5fa; --mo:#8b8ba0;
+    --do:#ef4444; --vang:#f59e0b; --luc:#10b981;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;background:var(--nen);color:var(--chu);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .bọc{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+  h1{font-size:21px;margin:8px 0 2px;display:flex;align-items:center;gap:8px;
+     background:linear-gradient(135deg,var(--xanh),var(--tim));-webkit-background-clip:text;
+     background-clip:text;-webkit-text-fill-color:transparent}
+  .phụ{color:var(--mo);font-size:12.5px;margin:0 0 18px;word-break:break-all}
+  .thẻ{background:var(--the);border:1px solid var(--vien);border-radius:16px;padding:18px;margin-bottom:14px}
+  label{display:block;font-size:12.5px;color:var(--mo);margin:14px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  label:first-child{margin-top:0}
+  input,select{
+    width:100%;padding:13px 14px;font-size:15px;border-radius:10px;
+    border:1px solid var(--vien);background:var(--o);color:var(--chu);
+  }
+  input:focus,select:focus{outline:none;border-color:var(--xanh)}
+  input::placeholder{color:#54546a}
+  button{
+    width:100%;padding:14px;font-size:15px;font-weight:600;border:0;
+    border-radius:10px;background:linear-gradient(135deg,var(--xanh),var(--tim));
+    color:#fff;margin-top:16px;cursor:pointer;transition:opacity .15s,transform .1s;
+  }
+  button:active{transform:scale(.98)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.phụ2{background:transparent;border:1px solid var(--vien);color:var(--mo);
+    font-weight:500;padding:12px;font-size:13.5px;margin-top:8px}
+  button.đỏ{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+  .hàng{display:flex;gap:8px}
+  .hàng button{margin-top:0;flex:0 0 auto;width:auto;padding:13px 16px}
+  .hàng input{flex:1}
+  .seg{display:flex;gap:8px;margin-top:4px}
+  .seg button{margin:0;flex:1;background:var(--o);border:1px solid var(--vien);
+    color:var(--mo);font-size:13.5px;font-weight:500;padding:11px}
+  .seg button.đang{background:linear-gradient(135deg,var(--xanh),var(--tim));border-color:transparent;color:#fff}
+  .key{
+    font:700 22px/1.3 ui-monospace,"SF Mono",Consolas,monospace;
+    letter-spacing:1px;color:var(--xanh);text-align:center;
+    padding:18px 8px;background:var(--o);border-radius:12px;
+    border:1px dashed var(--xanh);word-break:break-all;
+  }
+  .báo{padding:12px 14px;border-radius:10px;font-size:13.5px;margin-top:12px;line-height:1.5}
+  .báo.lỗi{background:#7f1d1d33;border:1px solid var(--do);color:#fca5a5}
+  .báo.ok{background:#064e3b33;border:1px solid var(--luc);color:#6ee7b7}
+  .báo.chờ{background:#78350f33;border:1px solid var(--vang);color:#fcd34d}
+  .dòng{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;
+    padding:13px 0;border-bottom:1px solid var(--vien);font-size:13.5px}
+  .dòng:last-child{border-bottom:0}
+  .dòng b{font:600 13px ui-monospace,Consolas,monospace;color:var(--xanh);white-space:nowrap}
+  .dòng small{display:block;color:var(--mo);font-size:11.5px;margin-top:2px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.03em;margin-left:6px}
+  .badge.free{background:#ffffff14;color:var(--mo)}
+  .badge.pro{background:#4d80ff26;color:var(--xanh)}
+  .badge.ultra{background:#8c59ff26;color:var(--tim)}
+  .tab{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tab button{margin:0;background:var(--the);border:1px solid var(--vien);color:var(--mo);font-size:13px;padding:11px 10px;flex:1;min-width:80px}
+  .tab button.đang{background:linear-gradient(135deg,var(--xanh),var(--tim));border-color:transparent;color:#fff}
+  .ẩn{display:none}
+  .ghi{font-size:11.5px;color:var(--mo);margin-top:10px;line-height:1.6}
+  a{color:var(--xanh)}
+  .lưới{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
+  @media (max-width:480px){.lưới{grid-template-columns:repeat(2,1fr)}}
+  .ô{background:var(--o);border:1px solid var(--vien);border-radius:14px;padding:18px 8px;text-align:center}
+  .ô .số{font:800 30px/1.1 -apple-system,sans-serif}
+  .ô .nhãn{font-size:11.5px;color:var(--mo);margin-top:6px;text-transform:uppercase;letter-spacing:.03em}
+  .cập-nhật{text-align:right;font-size:11px;color:var(--mo);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="bọc">
+
+  <h1>🔑 Quản trị license — OmniAI Max</h1>
+  <p class="phụ" id="kho">—</p>
+
+  <div class="tab">
+    <button id="tabCap" class="đang" onclick="đổiTab('cap')">⚡ Cấp key</button>
+    <button id="tabThu" onclick="đổiTab('thu')">🔒 Thu hồi</button>
+    <button id="tabDs" onclick="đổiTab('ds')">🗂 Danh sách</button>
+    <button id="tabTk" onclick="đổiTab('tk')">📊 Thống kê</button>
+    <button id="tabCai" onclick="đổiTab('cai')">⚙️ Cài đặt</button>
+  </div>
+
+  <!-- ── Cấp key ── -->
+  <div id="mCap" class="thẻ">
+    <label>Gmail khách hàng (bắt buộc)</label>
+    <input id="email" placeholder="khachhang@gmail.com" autocomplete="off" spellcheck="false">
+
+    <label>Gói (tier)</label>
+    <div class="seg" id="tier">
+      <button onclick="chọnTier('free')">Free</button>
+      <button onclick="chọnTier('pro')">Pro</button>
+      <button class="đang" onclick="chọnTier('ultra')">Ultra</button>
+    </div>
+
+    <label>SKU (tên gói hiển thị trong app)</label>
+    <input id="sku" placeholder="VD: Veo 3" value="Veo 3" autocomplete="off">
+
+    <label>Số credit</label>
+    <input type="number" id="credits" value="5000" min="0" step="1" inputmode="numeric">
+
+    <label>Thời hạn (số ngày, tự nhập được)</label>
+    <input type="number" id="ngay" value="30" min="0" step="1" inputmode="numeric" placeholder="VD: 30">
+    <div class="seg">
+      <button type="button" class="phụ2" onclick="đặtNgày(30)">30 ngày</button>
+      <button type="button" class="phụ2" onclick="đặtNgày(90)">90 ngày</button>
+      <button type="button" class="phụ2" onclick="đặtNgày(365)">1 năm</button>
+      <button type="button" class="phụ2" onclick="đặtNgày(0)">Vĩnh viễn</button>
+    </div>
+
+    <label>Mã máy (để trống = không khoá máy)</label>
+    <input id="deviceId" placeholder="Để trống nếu không cần khoá máy" autocomplete="off" spellcheck="false">
+
+    <button id="nutCap" onclick="cấpKey()">Cấp key</button>
+    <div id="kqCap"></div>
+  </div>
+
+  <!-- ── Thu hồi ── -->
+  <div id="mThu" class="thẻ ẩn">
+    <label>Tìm theo Gmail hoặc key</label>
+    <input id="timThu" placeholder="Gõ vài chữ là đủ" oninput="lọcThu()" autocomplete="off">
+    <div id="dsThu" style="margin-top:12px"></div>
+    <p class="ghi">Bấm vào 1 dòng để chọn, rồi bấm nút thu hồi bên dưới.</p>
+    <div id="đãChọnThu" class="báo chờ ẩn"></div>
+    <button id="nutThu" class="đỏ" onclick="thuHồi()" disabled>🔒 Thu hồi key đã chọn</button>
+  </div>
+
+  <!-- ── Danh sách ── -->
+  <div id="mDs" class="thẻ ẩn">
+    <label>Tìm theo Gmail hoặc key</label>
+    <input id="timDs" placeholder="Gõ vài chữ là đủ" oninput="lọcDs()" autocomplete="off">
+    <button class="phụ2" onclick="tảiDS(true)">↻ Tải lại từ Supabase</button>
+    <div id="dsDs" style="margin-top:12px"></div>
+  </div>
+
+  <!-- ── Thống kê ── -->
+  <div id="mTk" class="thẻ ẩn">
+    <div class="lưới" id="lướiTk">
+      <div class="ô"><div class="số" id="soOnline" style="color:var(--luc)">–</div><div class="nhãn">Online</div></div>
+      <div class="ô"><div class="số" id="soUsers" style="color:var(--xanh)">–</div><div class="nhãn">Users</div></div>
+      <div class="ô"><div class="số" id="soCheck" style="color:var(--tim)">–</div><div class="nhãn">Check 24h</div></div>
+      <div class="ô"><div class="số" id="soTotal" style="color:var(--mo)">–</div><div class="nhãn">Tổng</div></div>
+      <div class="ô"><div class="số" id="soActive" style="color:var(--luc)">–</div><div class="nhãn">Đang hoạt động</div></div>
+      <div class="ô"><div class="số" id="soExpiring" style="color:var(--vang)">–</div><div class="nhãn">Sắp hết hạn (7d)</div></div>
+    </div>
+    <div class="cập-nhật" id="capNhatLuc">—</div>
+    <button class="phụ2" onclick="tảiThốngKê()">↻ Tải lại ngay</button>
+    <p class="ghi">Tự tải lại mỗi 30 giây khi tab này đang mở.</p>
+  </div>
+
+  <!-- ── Cài đặt ── -->
+  <div id="mCai" class="thẻ ẩn">
+    <label>Mật khẩu quản trị</label>
+    <input id="token" type="password" placeholder="Mật khẩu đã đặt trong file .sql" autocomplete="off">
+    <p class="ghi">
+      Mật khẩu riêng bạn tự đặt trong <code>omni_supabase_setup.sql</code>
+      (thay chuỗi <code>CHANGE_ME_ADMIN_PASSWORD</code>) — không phải secret
+      key Supabase thật.
+    </p>
+    <button onclick="lưuCài()">Lưu</button>
+    <button class="phụ2" onclick="xoáToken()">Xoá mật khẩu khỏi máy này</button>
+    <p class="ghi">
+      Mật khẩu chỉ nằm trong trình duyệt máy này, không gửi đi đâu ngoài
+      Supabase. <b>Đổi mật khẩu</b> thì sửa lại 3 hàm
+      <code>omni_admin_*</code> trong Supabase SQL Editor — không ảnh hưởng
+      secret key thật của project hay VideoToolsPro.
+    </p>
+    <div id="kqCai"></div>
+  </div>
+
+  <p class="ghi" style="text-align:center;margin-top:20px">
+    Thêm vào màn hình chính: Safari bấm <b>Chia sẻ → Thêm vào MH chính</b>,
+    Chrome bấm <b>⋮ → Thêm vào màn hình chính</b>.
+  </p>
+</div>
+
+<script>
+"use strict";
+
+const SUPABASE_URL = "https://qypvqwawwtnzaaqumqgs.supabase.co";
+const ANON_KEY = "sb_publishable_uSxG9VbAdEDr_Iwl_QJHQQ_vR3qVm_W";
+const KEY_PREFIX = "OMNI-";
+const K_TOKEN = "omni_admin_pw";
+let DS = null;           // cache danh sách license
+let TIER = "ultra";
+let chọnThuKey = null;
+let hẹnGiờTk = null;
+
+const $ = id => document.getElementById(id);
+const token = () => (localStorage.getItem(K_TOKEN) || "").trim();
+
+function báo(ô, loại, html){ $(ô).innerHTML = `<div class="báo ${loại}">${html}</div>`; }
+function xoáBáo(ô){ $(ô).innerHTML = ""; }
+
+function đổiTab(t){
+  for (const [n, m, b] of [["cap","mCap","tabCap"],["thu","mThu","tabThu"],["ds","mDs","tabDs"],["tk","mTk","tabTk"],["cai","mCai","tabCai"]]) {
+    $(m).classList.toggle("ẩn", n !== t);
+    $(b).classList.toggle("đang", n === t);
+  }
+  if (hẹnGiờTk) { clearInterval(hẹnGiờTk); hẹnGiờTk = null; }
+  if (t === "thu" || t === "ds") tảiDS().then(() => { vẽDsThu(); vẽDsDs(); }).catch(e => báo(t === "thu" ? "dsThu" : "dsDs", "lỗi", e.message));
+  if (t === "tk") { tảiThốngKê(); hẹnGiờTk = setInterval(tảiThốngKê, 30000); }
+}
+
+function chọnTier(tier){
+  TIER = tier;
+  for (const b of $("tier").children) b.classList.toggle("đang", b.textContent.toLowerCase() === tier);
+  const mặc = { free: ["", 0], pro: ["Veo 3", 1000], ultra: ["Veo 3", 5000] };
+  const [sku, credits] = mặc[tier] || ["", 0];
+  if (!$("sku").value || Object.values(mặc).some(m => m[0] === $("sku").value)) $("sku").value = sku;
+  $("credits").value = credits;
+}
+
+function hiệnKho(){
+  $("kho").textContent = token()
+    ? `Kho key: Supabase (chung VideoToolsPro) — bảng omni_licenses — đã có mật khẩu quản trị`
+    : "Chưa cài đặt — mở tab Cài đặt để nhập mật khẩu quản trị";
+}
+
+// ── Cài đặt ────────────────────────────────────────────────────────────────
+function lưuCài(){
+  const t = $("token").value.trim();
+  if (!t) return báo("kqCai","lỗi","Nhập mật khẩu quản trị vào ô trên đã.");
+  localStorage.setItem(K_TOKEN, t);
+  $("token").value = "";
+  DS = null;
+  hiệnKho();
+  báo("kqCai","ok","Đã lưu. Thử bấm tab <b>Danh sách</b> xem có đọc được không.");
+}
+function xoáToken(){
+  localStorage.removeItem(K_TOKEN);
+  DS = null; hiệnKho();
+  báo("kqCai","ok","Đã xoá mật khẩu khỏi máy này.");
+}
+
+// ── Gọi Supabase (qua hàm RPC, dùng anon key — an toàn nhúng công khai) ────
+async function gọiRPC(tên, thamSố = {}, cầnMậtKhẩu = true){
+  if (cầnMậtKhẩu && !token()) throw new Error("Chưa cài đặt mật khẩu quản trị — mở tab Cài đặt.");
+  const h = {
+    "apikey": ANON_KEY,
+    "Authorization": "Bearer " + ANON_KEY,
+    "Content-Type": "application/json",
+  };
+  const body = cầnMậtKhẩu ? { ...thamSố, p_admin_pw: token() } : thamSố;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${tên}`, {
+    method: "POST", headers: h, cache: "no-store", body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    let m = `Supabase trả về ${r.status}`;
+    try { const j = await r.json(); if (j.message) m += ` (${j.message})`; } catch {}
+    throw new Error(m);
+  }
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+async function tảiDS(bắtBuộc){
+  if (DS && !bắtBuộc) return DS;
+  const r = await gọiRPC("omni_admin_list_licenses");
+  DS = r || [];
+  return DS;
+}
+
+// ── Cấp key ────────────────────────────────────────────────────────────────
+const CHỮ = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+function sinhMã(){
+  let k = "";
+  const b = new Uint32Array(8);
+  crypto.getRandomValues(b);
+  for (let i = 0; i < 8; i++) k += CHỮ[b[i] % CHỮ.length];
+  return k;
+}
+function đặtNgày(n){ $("ngay").value = n; }
+
+function hiệnKey(mã, phụ){
+  $("kqCap").innerHTML =
+    `<div class="key" id="oKey">${KEY_PREFIX}${mã}</div>
+     <button onclick="chép('${KEY_PREFIX}${mã}')">Copy để gửi Zalo</button>
+     <div class="báo ok">${phụ}</div>`;
+}
+async function chép(mã){
+  try { await navigator.clipboard.writeText(mã); alert("Đã copy: " + mã); }
+  catch { alert("Chạm giữ vào mã để copy tay."); }
+}
+
+async function cấpKey(){
+  const email = $("email").value.trim().toLowerCase();
+  const sku = $("sku").value.trim();
+  const credits = parseInt($("credits").value, 10) || 0;
+  const ngày = parseInt($("ngay").value, 10) || 0;
+  const deviceId = $("deviceId").value.trim().toUpperCase();
+  xoáBáo("kqCap");
+
+  if (!email || !email.includes("@")) return báo("kqCap","lỗi","Nhập đúng Gmail của khách hàng.");
+  if (!token()) return báo("kqCap","lỗi","Chưa có mật khẩu quản trị — mở tab <b>Cài đặt</b>.");
+
+  $("nutCap").disabled = true;
+  $("nutCap").textContent = "Đang cấp...";
+  try {
+    const mã = sinhMã();
+    const kq = await gọiRPC("omni_admin_issue_license", {
+      p_key: KEY_PREFIX + mã, p_email: email, p_days: ngày,
+      p_credits: credits, p_tier: TIER, p_sku: sku, p_device_id: deviceId,
+    });
+
+    if (!kq || kq.error === "wrong_password") {
+      return báo("kqCap","lỗi","Sai mật khẩu quản trị — vào Cài đặt kiểm tra lại.");
+    }
+    if (kq.reused) {
+      const key = String(kq.key_id).replace(/^OMNI-/, "");
+      return hiệnKey(key,
+        `Gmail này <b>đã có key</b> còn hạn tới ${kq.expire_date || "vĩnh viễn"}. Không cấp thêm.`);
+    }
+
+    DS = null;
+    hiệnKey(mã, `Đã lưu lên Supabase cho <b>${email}</b>. ${ngày ? "Hết hạn sau " + ngày + " ngày" : "Vĩnh viễn"}.`);
+  } catch (e) {
+    báo("kqCap","lỗi", e.message);
+  } finally {
+    $("nutCap").disabled = false;
+    $("nutCap").textContent = "Cấp key";
+  }
+}
+
+// ── Thu hồi ────────────────────────────────────────────────────────────────
+function vẽDsThu(){
+  const q = $("timThu").value.trim().toLowerCase();
+  const ds = (DS || []).filter(v => !v.revoked)
+    .filter(v => !q || (v.owner_email||"").toLowerCase().includes(q) || (v.key_id||"").toLowerCase().includes(q))
+    .slice(0, 60);
+  if (!ds.length) { $("dsThu").innerHTML = `<div class="báo chờ">Không có key nào khớp (hoặc tất cả đã bị thu hồi).</div>`; return; }
+  $("dsThu").innerHTML = ds.map(v => dòngHtml(v, true)).join("");
+}
+function lọcThu(){ if (DS) vẽDsThu(); }
+
+function chọnDòngThu(keyId){
+  chọnThuKey = keyId;
+  $("nutThu").disabled = false;
+  const v = (DS || []).find(x => x.key_id === keyId);
+  $("đãChọnThu").classList.remove("ẩn");
+  $("đãChọnThu").innerHTML = `Đã chọn: <b>${keyId}</b>${v ? " — " + v.owner_email : ""}`;
+  document.querySelectorAll("#dsThu .dòng").forEach(el => el.style.background = el.dataset.key === keyId ? "#4d80ff14" : "");
+}
+
+async function thuHồi(){
+  if (!chọnThuKey) return;
+  if (!confirm(`Thu hồi key ${chọnThuKey}?\n\nKhách sẽ không dùng được nữa ngay lần kiểm tra tiếp theo của app.`)) return;
+  $("nutThu").disabled = true;
+  $("nutThu").textContent = "Đang thu hồi...";
+  try {
+    const kq = await gọiRPC("omni_admin_revoke_license", { p_key_id: chọnThuKey });
+    if (!kq || kq.error === "wrong_password") throw new Error("Sai mật khẩu quản trị.");
+    if (kq.error === "not_found") throw new Error("Không tìm thấy key này.");
+    DS = null;
+    chọnThuKey = null;
+    $("đãChọnThu").classList.add("ẩn");
+    await tảiDS(true);
+    vẽDsThu();
+    báo("dsThu", "ok", "Đã thu hồi thành công.");
+  } catch (e) {
+    báo("dsThu", "lỗi", e.message);
+  } finally {
+    $("nutThu").disabled = true;
+    $("nutThu").textContent = "🔒 Thu hồi key đã chọn";
+  }
+}
+
+// ── Danh sách ──────────────────────────────────────────────────────────────
+function tierBadge(v){
+  return `<span class="badge ${v.tier}">${v.tier}</span>`;
+}
+const hômNay = () => new Date().toISOString().slice(0, 10);
+
+function dòngHtml(v, chọnĐược){
+  const hết = v.expire_date && v.expire_date < hômNay();
+  const trạngThái = v.revoked ? "đã thu hồi" : (hết ? "hết hạn" : "còn hạn");
+  const màu = v.revoked || hết ? "var(--do)" : "var(--luc)";
+  const online = v.last_heartbeat && (Date.now() - new Date(v.last_heartbeat).getTime()) < 3 * 60 * 1000;
+  const click = chọnĐược ? `onclick="chọnDòngThu('${v.key_id}')" style="cursor:pointer"` : "";
+  return `<div class="dòng" data-key="${v.key_id}" ${click}>
+    <div>${v.owner_email || "—"} ${tierBadge(v)} ${online ? '<span style="color:var(--luc)">● online</span>' : ""}
+      <small>${v.credits ?? 0} credit · ${v.sku || "—"}${v.device_id ? " · máy: " + v.device_id : ""}</small>
+      <small style="color:${màu}">${trạngThái} — ${v.expire_date || "vĩnh viễn"}</small>
+    </div>
+    <b>${v.key_id}</b>
+  </div>`;
+}
+
+function vẽDsDs(){
+  const q = $("timDs").value.trim().toLowerCase();
+  const ds = (DS || [])
+    .filter(v => !q || (v.owner_email||"").toLowerCase().includes(q) || (v.key_id||"").toLowerCase().includes(q))
+    .slice(0, 100);
+  if (!ds.length) { $("dsDs").innerHTML = `<div class="báo chờ">Không có key nào khớp.</div>`; return; }
+  $("dsDs").innerHTML = ds.map(v => dòngHtml(v, false)).join("");
+}
+function lọcDs(){ if (DS) vẽDsDs(); }
+
+// ── Thống kê ───────────────────────────────────────────────────────────────
+async function tảiThốngKê(){
+  try {
+    const s = await gọiRPC("omni_dashboard_stats", {}, false);
+    $("soOnline").textContent = s.online ?? 0;
+    $("soUsers").textContent = s.users ?? 0;
+    $("soCheck").textContent = s.check_24h ?? 0;
+    $("soTotal").textContent = s.total ?? 0;
+    $("soActive").textContent = s.active ?? 0;
+    $("soExpiring").textContent = s.expiring_soon ?? 0;
+    $("capNhatLuc").textContent = "Cập nhật lúc " + new Date().toLocaleTimeString("vi-VN");
+  } catch (e) {
+    $("capNhatLuc").textContent = "Lỗi tải thống kê: " + e.message;
+  }
+}
+
+// ── Khởi động ──────────────────────────────────────────────────────────────
+hiệnKho();
+chọnTier("ultra");
+if (!token()) đổiTab("cai");
+</script>
+</body>
+</html>
