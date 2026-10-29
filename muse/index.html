@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cấp key Muse AI Studio</title>
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="robots" content="noindex">
+<!--
+  trang_cap_key_muse.html — Cấp / tra cứu / thu hồi key Muse AI Studio
+  ===================================================================
+  DÙNG: double-click mở bằng Chrome là dùng được (không cần server).
+  Kho key: Supabase (bảng muse_licenses) — tạo 1 lần bằng file
+  muse_supabase_setup.sql.
+
+  BẢN CÔNG KHAI cho GitHub Pages (dùng trên điện thoại): KHÔNG chứa mật khẩu.
+  Mở lần đầu -> tab Cài đặt nhập mật khẩu quản trị, nó chỉ nằm trong trình
+  duyệt của máy đó. Mất điện thoại: đổi mật khẩu trong hàm muse_admin_ok
+  trên Supabase SQL Editor rồi Run lại — các key đã cấp không ảnh hưởng.
+-->
+<style>
+  :root{
+    --nen:#111827; --the:#1f2937; --vien:#374151; --o:#0d1117;
+    --xanh:#059669; --xanh-dam:#047857; --chu:#f9fafb; --mo:#9ca3af;
+    --do:#ef4444; --vang:#f59e0b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;background:var(--nen);color:var(--chu);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .bọc{max-width:560px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:8px 0 2px;display:flex;align-items:center;gap:8px}
+  .phụ{color:var(--mo);font-size:13px;margin:0 0 18px}
+  .thẻ{background:var(--the);border-radius:14px;padding:16px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--mo);margin:12px 0 6px}
+  input,select{
+    width:100%;padding:14px;font-size:16px;border-radius:10px;
+    border:1px solid var(--vien);background:var(--o);color:var(--chu);
+  }
+  input:focus,select:focus{outline:none;border-color:var(--xanh)}
+  button{
+    width:100%;padding:15px;font-size:16px;font-weight:600;border:0;cursor:pointer;
+    border-radius:10px;background:var(--xanh);color:#fff;margin-top:14px;
+  }
+  button:active{background:var(--xanh-dam)}
+  button:disabled{opacity:.5}
+  button.phụ2{background:transparent;border:1px solid var(--vien);color:var(--mo);
+    font-weight:400;padding:12px;font-size:14px}
+  .key{
+    font:700 24px/1.3 ui-monospace,"SF Mono",Consolas,monospace;
+    letter-spacing:1px;color:var(--xanh);text-align:center;
+    padding:18px 8px;background:var(--o);border-radius:10px;margin-top:14px;
+    border:1px dashed var(--xanh);word-break:break-all;
+  }
+  .báo{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px}
+  .báo.lỗi{background:#7f1d1d33;border:1px solid var(--do);color:#fca5a5}
+  .báo.ok{background:#064e3b33;border:1px solid var(--xanh);color:#6ee7b7}
+  .báo.chờ{background:#78350f33;border:1px solid var(--vang);color:#fcd34d}
+  .dòng{padding:12px 0;border-bottom:1px solid var(--vien);font-size:14px}
+  .dòng:last-child{border-bottom:0}
+  .dòng-đầu{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .dòng b{font:600 14px ui-monospace,Consolas,monospace;color:var(--xanh)}
+  .dòng small{display:block;color:var(--mo);font-size:12px;overflow-wrap:anywhere}
+  .nút-nhỏ{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .nút-nhỏ button{width:auto;margin:0;padding:7px 11px;font-size:13px;font-weight:500;
+    background:transparent;border:1px solid var(--vien);color:var(--chu)}
+  .nút-nhỏ button.đỏ{border-color:#ef444466;color:#fca5a5}
+  .nhãn{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700}
+  .nhãn.xanh{background:#05966926;color:#6ee7b7}.nhãn.đỏ{background:#ef444426;color:#fca5a5}
+  .nhãn.vàng{background:#f59e0b26;color:var(--vang)}.nhãn.xám{background:#ffffff14;color:var(--mo)}
+  .số-liệu{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+  .số-liệu div{background:var(--o);border-radius:10px;padding:10px 4px;text-align:center}
+  .số-liệu b{display:block;font-size:20px}
+  .số-liệu span{font-size:11px;color:var(--mo)}
+  .tab{display:flex;gap:6px;margin-bottom:14px}
+  .tab button{margin:0;background:var(--the);color:var(--mo);font-size:14px;padding:11px}
+  .tab button.đang{background:var(--xanh);color:#fff}
+  .ẩn{display:none}
+  .ghi{font-size:12px;color:var(--mo);margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="bọc">
+
+  <h1><img src="icon.png" alt="" style="width:30px;height:30px;border-radius:50%"> Cấp key Muse AI Studio</h1>
+  <p class="phụ" id="kho">—</p>
+
+  <div class="tab">
+    <button id="tabCap" class="đang" onclick="đổiTab('cap')">Cấp key</button>
+    <button id="tabTra" onclick="đổiTab('tra')">Tra cứu</button>
+    <button id="tabCai" onclick="đổiTab('cai')">Cài đặt</button>
+  </div>
+
+  <!-- ── Cấp key ── -->
+  <div id="mCap" class="thẻ">
+    <label>Tên khách</label>
+    <input id="ten" placeholder="VD: Anh Nam - Bắc Giang" autocomplete="off">
+
+    <label>Gmail khách (có thể để trống)</label>
+    <input id="email" type="email" placeholder="khach@gmail.com" autocomplete="off" spellcheck="false">
+    <p class="ghi" style="margin-top:6px">Để trống: key tự khoá vào Gmail + máy đầu tiên khách nhập.
+      Điền sẵn: khách phải nhập đúng Gmail này.</p>
+
+    <label>Thời hạn</label>
+    <select id="thang">
+      <option value="1">1 tháng (dùng thử)</option>
+      <option value="3">3 tháng</option>
+      <option value="6">6 tháng</option>
+      <option value="12" selected>12 tháng</option>
+      <option value="36">3 năm</option>
+      <option value="0">Vĩnh viễn</option>
+      <option value="tu">✎ Tự nhập...</option>
+    </select>
+    <div id="tuNhap" style="display:none;gap:8px;margin-top:8px">
+      <input id="soHan" type="number" min="1" step="1" value="15" inputmode="numeric" style="flex:1">
+      <select id="donVi" style="flex:1">
+        <option value="1" selected>ngày</option>
+        <option value="30">tháng</option>
+        <option value="365">năm</option>
+      </select>
+    </div>
+
+    <button id="nutCap" onclick="cấpKey()">Cấp key</button>
+    <div id="kqCap"></div>
+  </div>
+
+  <!-- ── Tra cứu ── -->
+  <div id="mTra" class="thẻ ẩn">
+    <div class="số-liệu" id="soLieu"></div>
+    <label style="margin-top:0">Lọc</label>
+    <select id="loc" onchange="lọc()">
+      <option value="all">Tất cả key</option>
+      <option value="online">● Khách đang dùng (3 phút gần nhất)</option>
+      <option value="active">Còn hạn</option>
+      <option value="unused">Chưa kích hoạt</option>
+      <option value="soon">Hết hạn trong 7 ngày</option>
+      <option value="dead">Đã thu hồi / hết hạn</option>
+    </select>
+    <label>Tìm theo tên khách, Gmail, key hoặc mã máy</label>
+    <input id="tim" placeholder="Gõ vài chữ là đủ" oninput="lọc()" autocomplete="off">
+    <p class="ghi" id="capNhat"></p>
+    <div id="kqTra"></div>
+    <div id="dsTra" style="margin-top:12px"></div>
+  </div>
+
+  <!-- ── Cài đặt ── -->
+  <div id="mCai" class="thẻ ẩn">
+    <label>Mật khẩu quản trị</label>
+    <input id="matKhau" type="password" placeholder="Để trống = dùng mật khẩu điền sẵn trong file" autocomplete="off">
+    <button onclick="lưuCài()">Lưu</button>
+    <button class="phụ2" onclick="xoáMậtKhẩu()">Xoá mật khẩu đã nhập trên máy này</button>
+    <p class="ghi">
+      Mật khẩu là chuỗi trong hàm <b>muse_admin_ok</b> của file muse_supabase_setup.sql.
+      <b>Lộ mật khẩu</b>: sửa chuỗi đó trong Supabase SQL Editor rồi Run lại — các key đã cấp không ảnh hưởng.
+    </p>
+    <div id="kqCai"></div>
+  </div>
+
+  <p class="ghi">
+    Thêm vào màn hình chính: Safari bấm <b>Chia sẻ → Thêm vào MH chính</b>,
+    Chrome bấm <b>⋮ → Thêm vào màn hình chính</b>.<br>
+    Thu hồi key: app của khách bị khoá trong vòng ~2 phút.
+    Khách đổi máy: Tra cứu → <b>Gỡ khoá máy</b>, khách nhập lại key trên máy mới.
+  </p>
+</div>
+
+<script>
+"use strict";
+
+const SUPABASE_URL = "https://qypvqwawwtnzaaqumqgs.supabase.co";
+const ANON_KEY = "sb_publishable_uSxG9VbAdEDr_Iwl_QJHQQ_vR3qVm_W";
+const MAT_KHAU_SAN = "";
+const K_PW = "muse_admin_pw";
+// Bỏ I, O, 0, 1 cho khách khỏi gõ nhầm
+const CHỮ = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+let DS = null;
+
+const $ = id => document.getElementById(id);
+const đọcLưu = k => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+const mậtKhẩu = () => (đọcLưu(K_PW) || MAT_KHAU_SAN).trim();
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hômNay = () => new Date().toISOString().slice(0, 10);
+
+function báo(ô, loại, html){ $(ô).innerHTML = html ? `<div class="báo ${loại}">${html}</div>` : ""; }
+function xoáBáo(ô){ $(ô).innerHTML = ""; }
+
+let hẹnGiờ = null;
+function làmMới(){
+  return tảiDS(true).then(vẽDS).catch(e => báo("kqTra","lỗi", esc(e.message)));
+}
+
+function đổiTab(t){
+  for (const [n, m, b] of [["cap","mCap","tabCap"],["tra","mTra","tabTra"],["cai","mCai","tabCai"]]) {
+    $(m).classList.toggle("ẩn", n !== t);
+    $(b).classList.toggle("đang", n === t);
+  }
+  clearInterval(hẹnGiờ); hẹnGiờ = null;
+  // Tab Tra cứu tự làm mới 30 giây/lần để thấy khách nào đang dùng
+  if (t === "tra") { làmMới(); hẹnGiờ = setInterval(làmMới, 30000); }
+}
+
+function hiệnKho(){
+  $("kho").textContent = mậtKhẩu()
+    ? "Kho: Supabase · bảng muse_licenses"
+    : "Chưa có mật khẩu quản trị — mở tab Cài đặt";
+}
+
+// ── Gọi Supabase (hàm RPC muse_admin_*, anon key an toàn để công khai) ───────
+async function gọi(hàm, tham = {}){
+  if (!mậtKhẩu()) throw new Error("Chưa có mật khẩu quản trị — mở tab Cài đặt.");
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${hàm}`, {
+    method: "POST", cache: "no-store",
+    headers: {"apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY, "Content-Type": "application/json"},
+    body: JSON.stringify({...tham, p_admin_pw: mậtKhẩu()}),
+  });
+  if (!r.ok) {
+    let m = `Supabase trả về ${r.status}`;
+    if (r.status === 404) m = "Chưa tạo bảng trên Supabase — dán file muse_supabase_setup.sql vào Supabase SQL Editor rồi bấm Run.";
+    else try { const j = await r.json(); if (j.message) m += ` (${j.message})`; } catch {}
+    throw new Error(m);
+  }
+  const txt = await r.text();
+  const j = txt ? JSON.parse(txt) : null;
+  if (j && j.error === "wrong_password") throw new Error("Sai mật khẩu quản trị — vào Cài đặt kiểm tra lại.");
+  if (j && j.error === "not_found") throw new Error("Không tìm thấy key này.");
+  return j;
+}
+
+async function tảiDS(bắtBuộc){
+  if (DS && !bắtBuộc) return DS;
+  DS = (await gọi("muse_admin_list_licenses")) || [];
+  return DS;
+}
+
+// ── Cấp key ────────────────────────────────────────────────────────────────
+function sinhMã(){
+  const b = new Uint32Array(12);
+  crypto.getRandomValues(b);
+  const s = Array.from(b, n => CHỮ[n % CHỮ.length]).join("");
+  return `MUSE-${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}`;
+}
+
+function hiệnKey(mã, phụ){
+  const m = esc(mã);
+  $("kqCap").innerHTML =
+    `<div class="key">${m}</div>
+     <button onclick="chép('${m}')">Copy để gửi Zalo</button>
+     <div class="báo ok">${phụ}</div>`;
+}
+
+async function chép(mã){
+  try { await navigator.clipboard.writeText(mã); alert("Đã copy: " + mã); }
+  catch { prompt("Copy tay mã này:", mã); }
+}
+
+const cònHạn = v => !v.revoked && (!v.expire_date || v.expire_date >= hômNay());
+
+// Ô "Tự nhập": hiện khi chọn ✎ trong danh sách thời hạn
+$("thang").addEventListener("change", () => {
+  const tu = $("thang").value === "tu";
+  $("tuNhap").style.display = tu ? "flex" : "none";
+  if (tu) $("soHan").focus();
+});
+
+const TÊN_ĐƠN_VỊ = {1: "ngày", 30: "tháng", 365: "năm"};
+
+// Thời hạn đang chọn => {ngày: số ngày (0 = vĩnh viễn), chữ: mô tả}, null nếu nhập sai
+function thờiHạn(){
+  const v = $("thang").value;
+  if (v !== "tu") {
+    const th = parseInt(v, 10);
+    return {ngày: th * 30, chữ: th ? th + " tháng" : "vĩnh viễn"};
+  }
+  const số = parseInt($("soHan").value, 10);
+  const đv = parseInt($("donVi").value, 10);
+  if (!Number.isInteger(số) || số < 1 || số * đv > 36500) return null;
+  return {ngày: số * đv, chữ: số + " " + TÊN_ĐƠN_VỊ[đv]};
+}
+
+// "15", "15 ngày", "3 tháng", "1 năm", "2t", "1n"... => số ngày; 0 = vĩnh viễn; null nếu sai
+function đọcThờiHạn(chuỗi){
+  const m = String(chuỗi).trim().toLowerCase().match(/^(\d+)\s*(ngày|ngay|d|tháng|thang|t|m|năm|nam|y)?$/);
+  if (!m) return null;
+  const số = parseInt(m[1], 10);
+  const đv = /^(tháng|thang|t|m)$/.test(m[2] || "") ? 30 : /^(năm|nam|y)$/.test(m[2] || "") ? 365 : 1;
+  return số * đv <= 36500 ? số * đv : null;
+}
+
+async function cấpKey(){
+  const ten = $("ten").value.trim();
+  const email = $("email").value.trim().toLowerCase();
+  const hạn = thờiHạn();
+  xoáBáo("kqCap");
+
+  if (!ten) return báo("kqCap","lỗi","Điền tên khách để sau còn tra cứu được.");
+  if (!hạn) return báo("kqCap","lỗi","Thời hạn tự nhập phải là số nguyên ≥ 1 (tối đa 100 năm).");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return báo("kqCap","lỗi","Gmail sai định dạng.");
+
+  $("nutCap").disabled = true;
+  $("nutCap").textContent = "Đang cấp...";
+  try {
+    // Gmail này đã có key còn hạn thì DÙNG LẠI, không cấp trùng
+    if (email) {
+      const cũ = (await tảiDS(true)).find(v => v.owner_email === email && cònHạn(v));
+      if (cũ) return hiệnKey(cũ.key_id,
+        `Gmail này <b>đã có key</b> còn hạn tới ${esc(cũ.expire_date || "vĩnh viễn")}` +
+        `${cũ.note ? " — " + esc(cũ.note) : ""}. Không cấp thêm.`);
+    }
+
+    let kq;
+    for (let i = 0; i < 3; i++) {
+      kq = await gọi("muse_admin_issue_license",
+        {p_key: sinhMã(), p_email: email, p_days: hạn.ngày, p_note: ten});
+      if (kq?.error !== "duplicate") break;
+    }
+    if (!kq?.ok) throw new Error("Không cấp được key, thử lại.");
+    DS = null;
+    hiệnKey(kq.key_id, `Đã lưu cho <b>${esc(ten)}</b>${email ? " (" + esc(email) + ")" : ""}. ` +
+      (kq.expire_date ? `Hết hạn ${esc(kq.expire_date)} (${esc(hạn.chữ)}).` : "Vĩnh viễn."));
+    $("ten").value = ""; $("email").value = "";
+  } catch (e) {
+    báo("kqCap","lỗi", esc(e.message));
+  } finally {
+    $("nutCap").disabled = false;
+    $("nutCap").textContent = "Cấp key";
+  }
+}
+
+// ── Tra cứu ────────────────────────────────────────────────────────────────
+// App khách gửi heartbeat 2 phút/lần => trong 3 phút gần nhất = đang mở app
+const đangDùng = v => !v.revoked && v.last_heartbeat && Date.now() - new Date(v.last_heartbeat).getTime() < 3 * 60 * 1000;
+const sắpHếtHạn = v => cònHạn(v) && v.expire_date && (new Date(v.expire_date) - new Date(hômNay())) / 864e5 <= 7;
+
+function lúcTrước(iso){
+  if (!iso) return "chưa từng";
+  const p = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (p < 1) return "vừa xong";
+  if (p < 60) return p + " phút trước";
+  if (p < 1440) return Math.round(p / 60) + " giờ trước";
+  return Math.round(p / 1440) + " ngày trước";
+}
+
+function trạngThái(v){
+  if (v.revoked) return `<span class="nhãn đỏ">đã thu hồi</span>`;
+  if (v.expire_date && v.expire_date < hômNay()) return `<span class="nhãn đỏ">hết hạn</span>`;
+  if (!v.activated_at) return `<span class="nhãn xám">chưa kích hoạt</span>`;
+  return đangDùng(v) ? `<span class="nhãn xanh">● đang dùng</span>` : `<span class="nhãn vàng">đã kích hoạt</span>`;
+}
+
+const BỘ_LỌC = {
+  all: () => true,
+  online: đangDùng,
+  active: cònHạn,
+  unused: v => cònHạn(v) && !v.activated_at,
+  soon: sắpHếtHạn,
+  dead: v => !cònHạn(v),
+};
+
+function vẽSốLiệu(){
+  const ds = DS || [];
+  const online = ds.filter(đangDùng).length;
+  const sắpHết = ds.filter(sắpHếtHạn).length;
+  // Bấm ô số liệu = lọc nhanh theo nhóm đó
+  $("soLieu").innerHTML = [[online,"đang dùng","online"],[ds.filter(cònHạn).length,"còn hạn","active"],
+    [sắpHết,"hết ≤7 ngày","soon"],[ds.length,"tổng key","all"]]
+    .map(([n, l, f]) => `<div style="cursor:pointer" onclick="$('loc').value='${f}';lọc()"><b>${n}</b><span>${l}</span></div>`).join("");
+}
+
+function vẽDS(){
+  vẽSốLiệu();
+  $("capNhat").textContent = "Cập nhật " + new Date().toLocaleTimeString("vi-VN") + " · tự làm mới mỗi 30 giây";
+  const q = $("tim").value.trim().toLowerCase();
+  const ds = (DS || [])
+    .filter(BỘ_LỌC[$("loc").value] || BỘ_LỌC.all)
+    .filter(v => !q || [v.note, v.owner_email, v.key_id, v.device_id].some(x => (x || "").toLowerCase().includes(q)))
+    .sort((a, b) => đangDùng(b) - đangDùng(a))
+    .slice(0, 100);
+  if (!ds.length) return $("dsTra").innerHTML = `<div class="báo chờ">Không có key nào khớp.</div>`;
+
+  $("dsTra").innerHTML = ds.map(v => {
+    const k = esc(v.key_id);
+    return `<div class="dòng">
+      <div class="dòng-đầu"><span>${esc(v.note) || "—"} ${trạngThái(v)}</span><b>${k}</b></div>
+      <small>${esc(v.owner_email) || "chưa gắn Gmail"} · ${esc(v.device_id) || "chưa gắn máy"}</small>
+      <small style="color:${cònHạn(v) ? "var(--mo)" : "var(--do)"}">hạn ${esc(v.expire_date) || "vĩnh viễn"} · cấp ${esc(v.issued)}</small>
+      <small>hoạt động lần cuối: ${lúcTrước(v.last_heartbeat)}</small>
+      <div class="nút-nhỏ">
+        <button onclick="chép('${k}')">Copy</button>
+        <button onclick="giaHạn('${k}')">Gia hạn</button>
+        ${v.device_id ? `<button onclick="gỡKhoá('${k}', true)">🔓 Gỡ khoá máy</button>` : ""}
+        ${v.owner_email ? `<button onclick="gỡKhoá('${k}', false)">🔓 Gỡ khoá Gmail</button>` : ""}
+        ${v.revoked ? `<button onclick="thuHồi('${k}', false)">Mở lại</button>`
+                    : `<button class="đỏ" onclick="thuHồi('${k}', true)">Thu hồi</button>`}
+      </div>
+    </div>`;
+  }).join("");
+}
+function lọc(){ if (DS) vẽDS(); }
+
+async function làm(hàm, tham, xong){
+  try {
+    await gọi(hàm, tham);
+    await tảiDS(true); vẽDS();
+    báo("kqTra","ok", xong);
+  } catch (e) { báo("kqTra","lỗi", esc(e.message)); }
+}
+
+function thuHồi(k, có){
+  if (có && !confirm(`Thu hồi key ${k}?\n\nApp của khách sẽ bị khoá trong vòng ~2 phút.`)) return;
+  làm("muse_admin_set_revoked", {p_key_id: k, p_revoked: có}, có ? `Đã thu hồi ${k}.` : `Đã mở lại ${k}.`);
+}
+
+function gỡKhoá(k, máy){
+  const gì = máy ? "máy" : "Gmail";
+  if (!confirm(`Gỡ khoá ${gì} cho key ${k}?\n\nKey sẽ tự khoá lại vào ${gì} kích hoạt kế tiếp.`)) return;
+  làm("muse_admin_unlock", {p_key_id: k, p_device: máy, p_email: !máy}, `Đã gỡ khoá ${gì} cho ${k}.`);
+}
+
+function giaHạn(k){
+  const v = prompt(`Gia hạn ${k} thêm bao lâu?\n\nVD: 15 ngày · 3 tháng · 1 năm (số không kèm chữ = ngày)\nNhập 0 = vĩnh viễn`, "30 ngày");
+  if (v === null) return;
+  const ngày = đọcThờiHạn(v);
+  if (ngày === null) return alert("Không hiểu thời hạn. Nhập kiểu: 15 ngày, 3 tháng, 1 năm.");
+  làm("muse_admin_extend", {p_key_id: k, p_days: ngày},
+    `Đã gia hạn ${k}${ngày ? " thêm " + ngày + " ngày" : " thành vĩnh viễn"}.`);
+}
+
+// ── Cài đặt ────────────────────────────────────────────────────────────────
+function lưuCài(){
+  const t = $("matKhau").value.trim();
+  try { t ? localStorage.setItem(K_PW, t) : localStorage.removeItem(K_PW); } catch {}
+  $("matKhau").value = "";
+  DS = null; hiệnKho();
+  gọi("muse_admin_stats").then(() => báo("kqCai","ok","Mật khẩu đúng. Thử tab <b>Tra cứu</b>."))
+    .catch(e => báo("kqCai","lỗi", esc(e.message)));
+}
+
+function xoáMậtKhẩu(){
+  try { localStorage.removeItem(K_PW); } catch {}
+  DS = null; hiệnKho();
+  báo("kqCai","ok", MAT_KHAU_SAN ? "Đã xoá. Đang dùng lại mật khẩu điền sẵn trong file." : "Đã xoá mật khẩu khỏi máy này.");
+}
+
+// ── Khởi động ──────────────────────────────────────────────────────────────
+hiệnKho();
+if (!mậtKhẩu()) đổiTab("cai");
+else gọi("muse_admin_stats").catch(e => báo("kqCap","lỗi", esc(e.message)));
+</script>
+</body>
+</html>
