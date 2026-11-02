@@ -88,7 +88,7 @@
 <body>
 <div class="bọc">
 
-  <h1><img src="icon.png" alt="" style="width:30px;height:30px;border-radius:50%"> Cấp key Muse AI Studio</h1>
+  <h1><img src="icon.png" alt="" style="width:30px;height:30px;border-radius:50%"> Cấp key Muse / Veo3 AI</h1>
   <p class="phụ" id="kho">—</p>
 
   <div class="tab">
@@ -99,6 +99,12 @@
 
   <!-- ── Cấp key ── -->
   <div id="mCap" class="thẻ">
+    <label>Sản phẩm</label>
+    <select id="sanPham" onchange="$('dongProxy').style.display = this.value === 'MUSE' ? 'flex' : 'none'">
+      <option value="MUSE" selected>Muse AI Studio (key MUSE-…)</option>
+      <option value="VEO3">Veo3 AI Video Generator (key VEO3-…)</option>
+    </select>
+
     <label>Tên khách</label>
     <input id="ten" placeholder="VD: Anh Nam - Bắc Giang" autocomplete="off">
 
@@ -125,6 +131,10 @@
         <option value="365">năm</option>
       </select>
     </div>
+
+    <label id="dongProxy" style="display:flex;align-items:center;gap:10px;color:var(--chu);font-size:15px;margin-top:14px">
+      <input id="kemProxy" type="checkbox" style="width:20px;height:20px;margin:0"> Kèm proxy thuê (cùng thời hạn, vĩnh viễn = 30 ngày)
+    </label>
 
     <button id="nutCap" onclick="cấpKey()">Cấp key</button>
     <div id="kqCap"></div>
@@ -160,6 +170,14 @@
       <b>Lộ mật khẩu</b>: sửa chuỗi đó trong Supabase SQL Editor rồi Run lại — các key đã cấp không ảnh hưởng.
     </p>
     <div id="kqCai"></div>
+
+    <label style="margin-top:22px">🔒 Proxy chung cho khách thuê</label>
+    <input id="proxyChung" type="password" placeholder="http://user:pass@gw.dataimpulse.com:823" autocomplete="off" spellcheck="false"
+      onfocus="this.type='text'" onblur="this.type='password'">
+    <button onclick="proxyChung(true)">Lưu proxy chung</button>
+    <p class="ghi">Khách được bật "Proxy thuê" sẽ tự nhận proxy này — app không hiện địa chỉ proxy và chỉ nhận trên đúng
+      máy đã kích hoạt key. Đổi mật khẩu proxy: sửa ở đây 1 lần, mọi khách nhận trong ~2 phút.</p>
+    <div id="kqProxy"></div>
   </div>
 
   <p class="ghi">
@@ -200,6 +218,7 @@ function đổiTab(t){
     $(m).classList.toggle("ẩn", n !== t);
     $(b).classList.toggle("đang", n === t);
   }
+  if (t === "cai" && mậtKhẩu()) proxyChung(false);
   clearInterval(hẹnGiờ); hẹnGiờ = null;
   // Tab Tra cứu tự làm mới 30 giây/lần để thấy khách nào đang dùng
   if (t === "tra") { làmMới(); hẹnGiờ = setInterval(làmMới, 30000); }
@@ -243,7 +262,7 @@ function sinhMã(){
   const b = new Uint32Array(12);
   crypto.getRandomValues(b);
   const s = Array.from(b, n => CHỮ[n % CHỮ.length]).join("");
-  return `MUSE-${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}`;
+  return `${$("sanPham").value}-${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}`;
 }
 
 function hiệnKey(mã, phụ){
@@ -307,7 +326,7 @@ async function cấpKey(){
   try {
     // Gmail này đã có key còn hạn thì DÙNG LẠI, không cấp trùng
     if (email) {
-      const cũ = (await tảiDS(true)).find(v => v.owner_email === email && cònHạn(v));
+      const cũ = (await tảiDS(true)).find(v => v.owner_email === email && cònHạn(v) && v.key_id.startsWith($("sanPham").value + "-"));
       if (cũ) return hiệnKey(cũ.key_id,
         `Gmail này <b>đã có key</b> còn hạn tới ${esc(cũ.expire_date || "vĩnh viễn")}` +
         `${cũ.note ? " — " + esc(cũ.note) : ""}. Không cấp thêm.`);
@@ -321,8 +340,13 @@ async function cấpKey(){
     }
     if (!kq?.ok) throw new Error("Không cấp được key, thử lại.");
     DS = null;
+    let px = "";
+    if ($("kemProxy").checked && $("sanPham").value === "MUSE") {
+      const p = await gọi("muse_admin_set_proxy", {p_key_id: kq.key_id, p_days: hạn.ngày || 30});
+      px = ` Proxy thuê đến ${esc(p.proxy_until)}.`;
+    }
     hiệnKey(kq.key_id, `Đã lưu cho <b>${esc(ten)}</b>${email ? " (" + esc(email) + ")" : ""}. ` +
-      (kq.expire_date ? `Hết hạn ${esc(kq.expire_date)} (${esc(hạn.chữ)}).` : "Vĩnh viễn."));
+      (kq.expire_date ? `Hết hạn ${esc(kq.expire_date)} (${esc(hạn.chữ)}).` : "Vĩnh viễn.") + px);
     $("ten").value = ""; $("email").value = "";
   } catch (e) {
     báo("kqCap","lỗi", esc(e.message));
@@ -390,9 +414,11 @@ function vẽDS(){
       <small>${esc(v.owner_email) || "chưa gắn Gmail"} · ${esc(v.device_id) || "chưa gắn máy"}</small>
       <small style="color:${cònHạn(v) ? "var(--mo)" : "var(--do)"}">hạn ${esc(v.expire_date) || "vĩnh viễn"} · cấp ${esc(v.issued)}</small>
       <small>hoạt động lần cuối: ${lúcTrước(v.last_heartbeat)}</small>
+      ${v.proxy_until ? `<small style="color:${v.proxy_until >= hômNay() ? "#6ee7b7" : "var(--do)"}">🔒 proxy thuê đến ${esc(v.proxy_until)}${v.proxy_url ? " · proxy riêng" : ""}</small>` : ""}
       <div class="nút-nhỏ">
         <button onclick="chép('${k}')">Copy</button>
         <button onclick="giaHạn('${k}')">Gia hạn</button>
+        <button onclick="proxyThuê('${k}')">🔒 Proxy thuê</button>
         ${v.device_id ? `<button onclick="gỡKhoá('${k}', true)">🔓 Gỡ khoá máy</button>` : ""}
         ${v.owner_email ? `<button onclick="gỡKhoá('${k}', false)">🔓 Gỡ khoá Gmail</button>` : ""}
         ${v.revoked ? `<button onclick="thuHồi('${k}', false)">Mở lại</button>`
@@ -429,6 +455,32 @@ function giaHạn(k){
   if (ngày === null) return alert("Không hiểu thời hạn. Nhập kiểu: 15 ngày, 3 tháng, 1 năm.");
   làm("muse_admin_extend", {p_key_id: k, p_days: ngày},
     `Đã gia hạn ${k}${ngày ? " thêm " + ngày + " ngày" : " thành vĩnh viễn"}.`);
+}
+
+function proxyThuê(k){
+  const v = prompt(`Proxy thuê cho ${k}: gia hạn thêm bao lâu?
+
+VD: 30 ngày · 1 tháng · 3 tháng
+Nhập 0 = TẮT proxy thuê của khách này`, "1 tháng");
+  if (v === null) return;
+  const ngày = đọcThờiHạn(v);
+  if (ngày === null) return alert("Không hiểu thời hạn. Nhập kiểu: 30 ngày, 1 tháng.");
+  if (!ngày && !confirm(`Tắt proxy thuê của ${k}? App của khách mất proxy trong ~2 phút.`)) return;
+  làm("muse_admin_set_proxy", {p_key_id: k, p_days: ngày},
+    ngày ? `Đã gia hạn proxy thuê ${k} thêm ${ngày} ngày.` : `Đã tắt proxy thuê của ${k}.`);
+}
+
+async function proxyChung(lưu){
+  try {
+    if (lưu) {
+      const url = $("proxyChung").value.trim();
+      if (url && !/@|:.*:.*:/.test(url)) return báo("kqProxy","lỗi","Proxy phải có user:pass, dạng http://user:pass@host:port");
+      await gọi("muse_admin_set_shared_proxy", {p_url: url});
+      return báo("kqProxy","ok", url ? "Đã lưu. App của khách đang thuê nhận proxy mới trong ~2 phút." : "Đã xoá proxy chung — khách thuê sẽ mất proxy.");
+    }
+    const r = await gọi("muse_admin_get_shared_proxy");
+    $("proxyChung").value = r.proxy || "";
+  } catch (e) { báo("kqProxy","lỗi", esc(e.message)); }
 }
 
 // ── Cài đặt ────────────────────────────────────────────────────────────────
