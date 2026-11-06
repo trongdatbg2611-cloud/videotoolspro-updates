@@ -1,36 +1,46 @@
 <title>Hain Key Manager</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Dark-first admin panel for mobile key management */
 :root {
-  --bg: #0c0c10; --surface: #16161c; --card: #1c1c24;
-  --border: #2a2a35; --border-focus: #3d5afe;
-  --accent: #3d5afe; --accent-hover: #536dfe; --accent-text: #fff;
-  --green: #00c853; --green-bg: rgba(0,200,83,.12);
-  --red: #ff1744; --red-bg: rgba(255,23,68,.12);
-  --yellow: #ffd600; --yellow-bg: rgba(255,214,0,.1);
-  --t1: #f0f0f5; --t2: #9e9eb0; --t3: #5c5c6e;
+  --bg: #08080c; --surface: #111118; --card: #17171f;
+  --border: #222230; --border-hover: #3a3a50;
+  --accent: #6c5ce7; --accent-hover: #7f70f0; --accent-glow: rgba(108,92,231,.25); --accent-text: #fff;
+  --green: #00e676; --green-bg: rgba(0,230,118,.1); --green-border: rgba(0,230,118,.25);
+  --red: #ff3d71; --red-bg: rgba(255,61,113,.1); --red-border: rgba(255,61,113,.25);
+  --yellow: #ffaa00; --yellow-bg: rgba(255,170,0,.1); --yellow-border: rgba(255,170,0,.25);
+  --purple: #d175e8; --purple-bg: rgba(209,117,232,.1); --purple-border: rgba(209,117,232,.25);
+  --blue: #5b8def; --blue-bg: rgba(91,141,239,.1);
+  --t1: #eeeef5; --t2: #8888a0; --t3: #555568;
   --font: 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', 'Consolas', monospace;
+  --radius: 16px; --radius-sm: 12px; --radius-xs: 8px;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #f4f4f8; --surface: #fff; --card: #fff;
-    --border: #d8d8e0; --border-focus: #3d5afe;
-    --green-bg: rgba(0,200,83,.08); --red-bg: rgba(255,23,68,.06);
-    --yellow-bg: rgba(255,214,0,.08);
-    --t1: #111118; --t2: #5c5c6e; --t3: #9e9eb0;
+    --bg: #f0f0f6; --surface: #fff; --card: #f8f8fc;
+    --border: #dddde6; --border-hover: #c0c0d0;
+    --accent-glow: rgba(108,92,231,.12);
+    --green-bg: rgba(0,180,80,.07); --green-border: rgba(0,180,80,.2);
+    --red-bg: rgba(255,61,113,.06); --red-border: rgba(255,61,113,.18);
+    --yellow-bg: rgba(255,170,0,.07); --yellow-border: rgba(255,170,0,.2);
+    --purple-bg: rgba(209,117,232,.07); --purple-border: rgba(209,117,232,.18);
+    --blue-bg: rgba(91,141,239,.07);
+    --t1: #111118; --t2: #666680; --t3: #9999aa;
     color-scheme: light;
   }
 }
 :root[data-theme="light"] {
-  --bg: #f4f4f8; --surface: #fff; --card: #fff;
-  --border: #d8d8e0; --border-focus: #3d5afe;
-  --green-bg: rgba(0,200,83,.08); --red-bg: rgba(255,23,68,.06);
-  --yellow-bg: rgba(255,214,0,.08);
-  --t1: #111118; --t2: #5c5c6e; --t3: #9e9eb0;
+  --bg: #f0f0f6; --surface: #fff; --card: #f8f8fc;
+  --border: #dddde6; --border-hover: #c0c0d0;
+  --accent-glow: rgba(108,92,231,.12);
+  --green-bg: rgba(0,180,80,.07); --green-border: rgba(0,180,80,.2);
+  --red-bg: rgba(255,61,113,.06); --red-border: rgba(255,61,113,.18);
+  --yellow-bg: rgba(255,170,0,.07); --yellow-border: rgba(255,170,0,.2);
+  --purple-bg: rgba(209,117,232,.07); --purple-border: rgba(209,117,232,.18);
+  --blue-bg: rgba(91,141,239,.07);
+  --t1: #111118; --t2: #666680; --t3: #9999aa;
   color-scheme: light;
 }
 
@@ -41,111 +51,196 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 0;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 540px; margin: 0 auto; padding: 20px 0 40px; display: flex; flex-direction: column; gap: 16px; }
+.wrap { max-width: 480px; margin: 0 auto; padding: 16px 0 48px; display: flex; flex-direction: column; gap: 14px; }
 
-/* Header */
-.header { text-align: center; padding: 12px 0 4px; }
-.header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em; color: var(--t1); }
-.header .sub { font-size: .8rem; color: var(--t3); margin-top: 4px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.header {
+  text-align: center; padding: 24px 0 8px;
+  background: linear-gradient(135deg, var(--accent-glow) 0%, transparent 50%);
+  border-radius: var(--radius); margin-bottom: 2px;
+}
+.header .logo {
+  width: 44px; height: 44px; margin: 0 auto 10px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  border-radius: 13px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -.03em;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+.header h1 { font-size: 1.3rem; font-weight: 800; letter-spacing: -.03em; color: var(--t1); }
+.header .sub { font-size: .7rem; color: var(--t3); margin-top: 3px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 
-/* Tabs */
-.tabs { display: flex; gap: 4px; background: var(--surface); border-radius: 12px; padding: 4px; border: 1px solid var(--border); }
-.tab { flex: 1; padding: 10px 0; border: none; border-radius: 9px; background: transparent; color: var(--t2); font-family: var(--font); font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .15s; }
-.tab.active { background: var(--accent); color: var(--accent-text); }
-.tab:not(.active):hover { color: var(--t1); }
+.tabs {
+  display: flex; gap: 3px; background: var(--surface); border-radius: var(--radius-sm);
+  padding: 3px; border: 1px solid var(--border);
+}
+.tab {
+  flex: 1; padding: 10px 0; border: none; border-radius: 10px;
+  background: transparent; color: var(--t3); font-family: var(--font);
+  font-size: .78rem; font-weight: 600; cursor: pointer;
+  transition: all .2s ease; position: relative;
+}
+.tab.active {
+  background: linear-gradient(135deg, var(--accent), #8b7cf0);
+  color: #fff; box-shadow: 0 2px 12px var(--accent-glow);
+}
+.tab:not(.active):active { background: var(--card); }
 
-/* Cards */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
-.card-title { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--t3); margin-bottom: 14px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+  transition: border-color .2s;
+}
+.card-title {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--t3); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.card-title::before {
+  content: ''; width: 3px; height: 12px; border-radius: 2px;
+  background: var(--accent); flex-shrink: 0;
+}
 
-/* Form elements */
-.field { display: flex; flex-direction: column; gap: 6px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
 .field + .field { margin-top: 12px; }
-.field label { font-size: .78rem; font-weight: 600; color: var(--t2); }
+.field label { font-size: .74rem; font-weight: 600; color: var(--t2); }
 .field select, .field input {
-  width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
-  background: var(--card); color: var(--t1); font-family: var(--font); font-size: .88rem;
-  outline: none; transition: border-color .15s;
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+  background: var(--card); color: var(--t1); font-family: var(--font); font-size: .86rem;
+  outline: none; transition: all .2s;
 }
-.field select:focus, .field input:focus { border-color: var(--border-focus); }
-.field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239e9eb0'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.field select:focus, .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238888a0'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+}
 
-/* Buttons */
 .btn {
-  width: 100%; padding: 13px; border: none; border-radius: 11px; font-family: var(--font);
-  font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .15s;
+  width: 100%; padding: 12px; border: none; border-radius: var(--radius-xs);
+  font-family: var(--font); font-size: .84rem; font-weight: 600;
+  cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
 }
-.btn-primary { background: var(--accent); color: var(--accent-text); }
-.btn-primary:hover { background: var(--accent-hover); }
-.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid transparent; }
-.btn-danger:hover { border-color: var(--red); }
-.btn-ghost { background: transparent; color: var(--t2); border: 1px solid var(--border); }
-.btn-ghost:hover { border-color: var(--t2); color: var(--t1); }
-.btn-warn { background: var(--yellow-bg); color: var(--yellow); border: 1px solid transparent; }
-.btn-warn:hover { border-color: var(--yellow); }
-.pill-revoked { background: rgba(156,39,176,.12); color: #ce93d8; }
+.btn:active { transform: scale(.97); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #8b7cf0);
+  color: #fff; box-shadow: 0 2px 12px var(--accent-glow);
+}
+.btn-primary:active { box-shadow: 0 1px 6px var(--accent-glow); }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.btn-ghost { background: var(--card); color: var(--t2); border: 1px solid var(--border); }
+.btn-ghost:active { border-color: var(--t3); color: var(--t1); }
+.btn-warn { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
 .btn-row { display: flex; gap: 8px; margin-top: 14px; }
 .btn-row .btn { flex: 1; }
 
-/* Key list */
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.stat-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 16px 12px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.stat-box::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.stat-box:nth-child(1)::before { background: var(--t2); }
+.stat-box:nth-child(2)::before { background: var(--green); }
+.stat-box:nth-child(3)::before { background: var(--red); }
+.stat-box:nth-child(4)::before { background: var(--purple); }
+.stat-num { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--t3); margin-top: 3px; }
+.stat-box:nth-child(1) .stat-num { color: var(--t1); }
+.stat-box:nth-child(2) .stat-num { color: var(--green); }
+.stat-box:nth-child(3) .stat-num { color: var(--red); }
+.stat-box:nth-child(4) .stat-num { color: var(--purple); }
+
 .key-item {
-  padding: 14px; border-radius: 11px; background: var(--card); border: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 8px; transition: border-color .15s;
+  padding: 14px; border-radius: var(--radius-sm); background: var(--card);
+  border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;
+  transition: all .2s;
 }
 .key-item + .key-item { margin-top: 8px; }
-.key-item:hover { border-color: var(--accent); }
-.key-name { font-family: var(--mono); font-size: .84rem; font-weight: 500; color: var(--t1); word-break: break-all; }
+.key-item:active { border-color: var(--accent); }
+.key-name {
+  font-family: var(--mono); font-size: .82rem; font-weight: 500;
+  color: var(--t1); word-break: break-all; letter-spacing: .02em;
+}
 .key-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pill {
   display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
-  font-size: .7rem; font-weight: 600; letter-spacing: .02em;
+  font-size: .68rem; font-weight: 700; letter-spacing: .02em;
 }
-.pill-ok { background: var(--green-bg); color: var(--green); }
-.pill-exp { background: var(--red-bg); color: var(--red); }
-.pill-warn { background: var(--yellow-bg); color: var(--yellow); }
-.pill-info { background: rgba(61,90,254,.12); color: var(--accent); }
-.key-device { font-size: .74rem; color: var(--t3); font-family: var(--mono); word-break: break-all; }
-.key-actions { display: flex; gap: 6px; margin-top: 4px; }
-.key-actions .btn { padding: 8px 12px; font-size: .76rem; width: auto; flex: none; }
+.pill-ok { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.pill-exp { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.pill-warn { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+.pill-info { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(91,141,239,.2); }
+.pill-revoked { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+.key-device { font-size: .72rem; color: var(--t3); font-family: var(--mono); word-break: break-all; }
+.key-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.key-actions .btn { padding: 8px 12px; font-size: .74rem; width: auto; flex: none; border-radius: var(--radius-xs); }
 
-/* Toast */
 .toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  position: fixed; bottom: env(safe-area-inset-bottom, 24px); left: 50%;
+  transform: translateX(-50%) translateY(80px);
   background: var(--surface); color: var(--t1); border: 1px solid var(--border);
-  padding: 12px 20px; border-radius: 12px; font-size: .84rem; font-weight: 500;
-  box-shadow: 0 8px 32px rgba(0,0,0,.3); z-index: 100; opacity: 0; transition: all .3s ease;
+  padding: 12px 20px; border-radius: var(--radius-sm); font-size: .82rem; font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4); z-index: 100; opacity: 0;
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
   pointer-events: none; max-width: calc(100vw - 48px); text-align: center;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.show { transform: translateX(-50%) translateY(-12px); opacity: 1; }
 
-/* Stats row */
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 14px; text-align: center; }
-.stat-num { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--t1); }
-.stat-label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--t3); margin-top: 2px; }
-
-/* Loading */
-.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 32px 16px; color: var(--t3); font-size: .84rem; }
 
-.empty { text-align: center; padding: 32px 16px; color: var(--t3); font-size: .88rem; }
+.section { display: none; flex-direction: column; gap: 14px; }
+.section.active { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Section hidden/shown */
-.section { display: none; flex-direction: column; gap: 16px; }
-.section.active { display: flex; }
-
-/* Confirm overlay */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px;
+}
 .overlay[hidden] { display: none !important; }
-.dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 360px; width: 100%; }
-.dialog h3 { font-size: 1rem; margin-bottom: 8px; }
-.dialog p { font-size: .84rem; color: var(--t2); margin-bottom: 18px; word-break: break-all; }
+.dialog {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; max-width: 340px; width: 100%;
+  box-shadow: 0 24px 48px rgba(0,0,0,.4);
+  animation: dialogIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes dialogIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+.dialog h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.dialog p { font-size: .82rem; color: var(--t2); margin-bottom: 18px; word-break: break-all; line-height: 1.5; }
+
+.search-wrap { position: relative; }
+.search-wrap input {
+  width: 100%; padding: 12px 14px 12px 38px; border-radius: var(--radius-xs);
+  border: 1px solid var(--border); background: var(--card); color: var(--t1);
+  font-family: var(--font); font-size: .84rem; outline: none; transition: all .2s;
+}
+.search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.search-wrap::before {
+  content: ''; position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; border: 2px solid var(--t3); border-radius: 50%;
+  pointer-events: none;
+}
+.search-wrap::after {
+  content: ''; position: absolute; left: 24px; top: 50%; transform: translateY(2px) rotate(45deg);
+  width: 2px; height: 6px; background: var(--t3); pointer-events: none;
+}
 </style>
 
 <div class="wrap">
   <div class="header">
+    <div class="logo">H</div>
     <h1>Hain Key Manager</h1>
     <div class="sub">Firebase Admin Panel</div>
   </div>
@@ -157,13 +252,12 @@ body {
     <button class="tab" data-tab="settings" onclick="switchTab('settings')">Cai Dat</button>
   </div>
 
-  <!-- DASHBOARD -->
   <div class="section active" id="sec-dashboard">
-    <div class="stats" id="stats">
+    <div class="stats">
       <div class="stat-box"><div class="stat-num" id="st-total">—</div><div class="stat-label">Tong Key</div></div>
-      <div class="stat-box"><div class="stat-num" id="st-active" style="color:var(--green)">—</div><div class="stat-label">Active</div></div>
-      <div class="stat-box"><div class="stat-num" id="st-expired" style="color:var(--red)">—</div><div class="stat-label">Het Han</div></div>
-      <div class="stat-box"><div class="stat-num" id="st-revoked" style="color:#ce93d8">—</div><div class="stat-label">Thu Hoi</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-active">—</div><div class="stat-label">Active</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-expired">—</div><div class="stat-label">Het Han</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-revoked">—</div><div class="stat-label">Thu Hoi</div></div>
     </div>
     <div class="card">
       <div class="card-title">Key Gan Het Han</div>
@@ -171,7 +265,6 @@ body {
     </div>
   </div>
 
-  <!-- CREATE -->
   <div class="section" id="sec-create">
     <div class="card">
       <div class="card-title">Tao Key Moi</div>
@@ -202,41 +295,40 @@ body {
     </div>
   </div>
 
-  <!-- MANAGE -->
   <div class="section" id="sec-manage">
     <div class="card" style="padding:12px">
-      <input type="text" id="m-search" placeholder="Tim key..." style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-family:var(--font);font-size:.86rem;outline:none">
+      <div class="search-wrap">
+        <input type="text" id="m-search" placeholder="Tim key...">
+      </div>
     </div>
     <div id="key-list"><div class="empty"><span class="spinner"></span> Dang tai...</div></div>
   </div>
 
-  <!-- SETTINGS -->
   <div class="section" id="sec-settings">
     <div class="card">
       <div class="card-title">Firebase URL</div>
       <div class="field">
         <label>Database URL (khong co https://)</label>
-        <input type="text" id="s-url" placeholder="ten-project-default-rtdb.asia-southeast1.firebasedatabase.app" autocomplete="off" spellcheck="false">
+        <input type="text" id="s-url" placeholder="ten-project-default-rtdb.firebasedatabase.app" autocomplete="off" spellcheck="false">
       </div>
       <div class="btn-row" style="margin-top:14px">
         <button class="btn btn-ghost" onclick="testFb()">Test</button>
         <button class="btn btn-primary" onclick="saveFbUrl()">Luu</button>
       </div>
-      <div id="s-status" style="font-size:.8rem;color:var(--t3);margin-top:10px"></div>
+      <div id="s-status" style="font-size:.78rem;color:var(--t3);margin-top:10px"></div>
     </div>
     <div class="card">
       <div class="card-title">Huong Dan</div>
-      <div style="font-size:.82rem;color:var(--t2);line-height:1.6">
-        1. Vao <b>Firebase Console</b> &gt; Realtime Database<br>
-        2. Copy URL database (vd: <code style="font-family:var(--mono);font-size:.78rem;color:var(--accent)">ten-project-default-rtdb.asia-southeast1.firebasedatabase.app</code>)<br>
-        3. Dan vao o tren, bam <b>Test</b> de kiem tra<br>
-        4. Bam <b>Luu</b> de luu lai
+      <div style="font-size:.8rem;color:var(--t2);line-height:1.7">
+        1. Vao <b style="color:var(--t1)">Firebase Console</b> &gt; Realtime Database<br>
+        2. Copy URL database<br>
+        3. Dan vao o tren, bam <b style="color:var(--t1)">Test</b><br>
+        4. Bam <b style="color:var(--t1)">Luu</b> de luu lai
       </div>
     </div>
   </div>
 </div>
 
-<!-- Confirm dialog -->
 <div class="overlay" id="confirm-overlay" hidden>
   <div class="dialog">
     <h3 id="dlg-title">Xac nhan</h3>
@@ -272,8 +364,7 @@ function toast(msg, ms) {
 
 async function fbGet(path) {
   const r = await fetch(`https://${FB}/${path}.json`);
-  const d = await r.json();
-  return d;
+  return await r.json();
 }
 async function fbPut(path, data) {
   await fetch(`https://${FB}/${path}.json`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
@@ -291,16 +382,12 @@ function randSeg(n) {
   for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)];
   return s;
 }
-
-function genKey(tier) {
-  return `JBC-${tier}-${randSeg(4)}-${randSeg(4)}`;
-}
+function genKey(tier) { return `JBC-${tier}-${randSeg(4)}-${randSeg(4)}`; }
 
 function daysLeft(expStr) {
   try {
     const exp = new Date(expStr);
-    const now = new Date();
-    return Math.floor((exp - now) / 86400000);
+    return Math.floor((exp - new Date()) / 86400000);
   } catch { return -1; }
 }
 
@@ -323,7 +410,6 @@ async function loadKeys() {
 
 function renderDashboard() {
   const entries = Object.entries(allKeys).filter(([,v]) => v && typeof v === 'object');
-  const now = new Date();
   let active = 0, expired = 0, revoked = 0;
   const expiring = [];
 
@@ -355,11 +441,7 @@ function renderManage() {
   const entries = Object.entries(allKeys)
     .filter(([k, v]) => v && typeof v === 'object')
     .filter(([k]) => !search || k.includes(search))
-    .sort((a, b) => {
-      const da = daysLeft(a[1].expirationDate || '');
-      const db = daysLeft(b[1].expirationDate || '');
-      return db - da;
-    });
+    .sort((a, b) => daysLeft(b[1].expirationDate || '') - daysLeft(a[1].expirationDate || ''));
 
   const el = document.getElementById('key-list');
   if (!entries.length) {
@@ -370,8 +452,8 @@ function renderManage() {
     const d = daysLeft(v.expirationDate || '');
     const dev = v.deviceId || '';
     const exp = (v.expirationDate || '').replace('T', ' ').replace('Z', '');
-    const revoked = v.revoked === true;
-    const statusPill = revoked ? `<span class="pill pill-revoked">THU HOI</span>` : pillHtml(d);
+    const rev = v.revoked === true;
+    const statusPill = rev ? `<span class="pill pill-revoked">THU HOI</span>` : pillHtml(d);
     return `<div class="key-item">
       <div class="key-name">${esc(k)}</div>
       <div class="key-meta">${statusPill} ${dev ? `<span class="pill pill-info">Bound</span>` : ''}</div>
@@ -380,18 +462,14 @@ function renderManage() {
         <button class="btn btn-ghost" onclick="copyKey('${esc(k)}')">Copy</button>
         <button class="btn btn-ghost" onclick="unbindKey('${esc(k)}')">Go Bind</button>
         <button class="btn btn-ghost" onclick="extendKey('${esc(k)}')">Gia Han</button>
-        ${!revoked ? `<button class="btn btn-warn" onclick="revokeKey('${esc(k)}')">Thu Hoi</button>` : ''}
+        ${!rev ? `<button class="btn btn-warn" onclick="revokeKey('${esc(k)}')">Thu Hoi</button>` : ''}
         <button class="btn btn-danger" onclick="deleteKey('${esc(k)}')">Xoa</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 async function createKeys() {
   const tier = document.getElementById('c-tier').value;
@@ -399,22 +477,18 @@ async function createKeys() {
   const count = Math.min(50, Math.max(1, parseInt(document.getElementById('c-count').value) || 1));
   const days = TIERS[tier] || 30;
   const exp = new Date(Date.now() + days * 86400000).toISOString().replace(/\.\d+Z/, 'Z');
-
   const created = [];
   for (let i = 0; i < count; i++) {
     const key = (count === 1 && custom && custom.startsWith('JBC-')) ? custom : genKey(tier);
     try {
       const existing = await fbGet(`keys/${encodeURIComponent(key)}`);
-      if (existing) { toast(`Key ${key} da ton tai, bo qua`, 2000); continue; }
+      if (existing) { toast(`Key ${key} da ton tai`, 2000); continue; }
       await fbPut(`keys/${encodeURIComponent(key)}`, { expirationDate: exp, deviceId: '' });
       created.push(key);
-    } catch (e) {
-      toast('Loi: ' + e.message, 3000);
-    }
+    } catch (e) { toast('Loi: ' + e.message, 3000); }
   }
-
   if (created.length) {
-    toast(`Da tao ${created.length} key thanh cong!`);
+    toast(`Da tao ${created.length} key!`);
     const card = document.getElementById('created-card');
     card.hidden = false;
     document.getElementById('created-list').innerHTML = created.map(k =>
@@ -427,12 +501,10 @@ async function createKeys() {
 function copyCreated() {
   const card = document.getElementById('created-card');
   if (card._keys && card._keys.length) {
-    const text = card._keys.join('\n');
-    try { navigator.clipboard.writeText(text); toast('Da copy ' + card._keys.length + ' key!'); }
-    catch { selectText(text); }
+    try { navigator.clipboard.writeText(card._keys.join('\n')); toast('Da copy ' + card._keys.length + ' key!'); }
+    catch { toast(card._keys.join('\n'), 5000); }
   }
 }
-
 function copyKey(key) {
   try { navigator.clipboard.writeText(key); toast('Da copy: ' + key); }
   catch { toast(key, 5000); }
@@ -449,19 +521,17 @@ function closeDialog() { document.getElementById('confirm-overlay').hidden = tru
 function dialogOk() { if (dialogCb) dialogCb(); closeDialog(); }
 
 function deleteKey(key) {
-  showDialog('Xoa Key', `Xac nhan xoa key: ${key}?`, 'Xoa', async () => {
+  showDialog('Xoa Key', `Xac nhan xoa: ${key}?`, 'Xoa', async () => {
     try {
       await fbDelete(`keys/${encodeURIComponent(key)}`);
-      toast('Da xoa: ' + key);
-      delete allKeys[key];
-      renderManage();
-      renderDashboard();
+      toast('Da xoa: ' + key); delete allKeys[key];
+      renderManage(); renderDashboard();
     } catch (e) { toast('Loi: ' + e.message, 3000); }
   });
 }
 
 function unbindKey(key) {
-  showDialog('Go Bind Device', `Go bind device cho key: ${key}? Khach co the activate lai tren may khac.`, 'Go Bind', async () => {
+  showDialog('Go Bind Device', `Go bind device cho: ${key}?`, 'Go Bind', async () => {
     try {
       await fbPatch(`keys/${encodeURIComponent(key)}`, { deviceId: '' });
       toast('Da go bind: ' + key);
@@ -471,11 +541,6 @@ function unbindKey(key) {
   });
 }
 
-function extendKey(key) {
-  const days = prompt_inline(key);
-}
-
-// Inline prompt for extend (since confirm/prompt don't work in artifacts)
 function extendKey(key) {
   const el = document.getElementById('key-list');
   const inp = document.createElement('div');
@@ -500,20 +565,17 @@ async function doExtend(key, card) {
     await fbPatch(`keys/${encodeURIComponent(key)}`, { expirationDate: newExp });
     toast(`Da gia han +${days} ngay cho ${key}`);
     if (allKeys[key]) allKeys[key].expirationDate = newExp;
-    card.remove();
-    renderManage();
-    renderDashboard();
+    card.remove(); renderManage(); renderDashboard();
   } catch (e) { toast('Loi: ' + e.message, 3000); }
 }
 
 function revokeKey(key) {
-  showDialog('Thu Hoi Key', `Thu hoi key: ${key}? Key se bi vo hieu hoa, khach khong dung duoc nua.`, 'Thu Hoi', async () => {
+  showDialog('Thu Hoi Key', `Thu hoi: ${key}? Key se bi vo hieu hoa.`, 'Thu Hoi', async () => {
     try {
       await fbPatch(`keys/${encodeURIComponent(key)}`, { revoked: true, expirationDate: '1970-01-01T00:00:00Z', deviceId: '' });
       toast('Da thu hoi: ' + key);
       if (allKeys[key]) { allKeys[key].revoked = true; allKeys[key].expirationDate = '1970-01-01T00:00:00Z'; allKeys[key].deviceId = ''; }
-      renderManage();
-      renderDashboard();
+      renderManage(); renderDashboard();
     } catch (e) { toast('Loi: ' + e.message, 3000); }
   });
 }
@@ -525,14 +587,9 @@ async function testFb() {
   st.textContent = 'Dang test...'; st.style.color = 'var(--t3)';
   try {
     const r = await fetch(`https://${url}/.json?shallow=true`);
-    if (r.ok) {
-      st.textContent = 'Ket noi thanh cong!'; st.style.color = 'var(--green)';
-    } else {
-      st.textContent = `Loi HTTP ${r.status} — kiem tra lai URL va Rules`; st.style.color = 'var(--red)';
-    }
-  } catch (e) {
-    st.textContent = 'Khong ket noi duoc: ' + e.message; st.style.color = 'var(--red)';
-  }
+    if (r.ok) { st.textContent = 'Ket noi thanh cong!'; st.style.color = 'var(--green)'; }
+    else { st.textContent = `Loi HTTP ${r.status}`; st.style.color = 'var(--red)'; }
+  } catch (e) { st.textContent = 'Khong ket noi duoc: ' + e.message; st.style.color = 'var(--red)'; }
 }
 
 function saveFbUrl() {
@@ -544,16 +601,8 @@ function saveFbUrl() {
   setTimeout(() => loadKeys(), 500);
 }
 
-// Load saved URL
-try {
-  const saved = localStorage.getItem('hain_fb_url');
-  if (saved) FB = saved;
-} catch {}
+try { const saved = localStorage.getItem('hain_fb_url'); if (saved) FB = saved; } catch {}
 document.getElementById('s-url').value = FB;
-
-// Search
 document.getElementById('m-search').addEventListener('input', () => renderManage());
-
-// Init
 loadKeys();
 </script>
