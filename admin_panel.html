@@ -1,0 +1,559 @@
+<title>Hain Key Manager</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Dark-first admin panel for mobile key management */
+:root {
+  --bg: #0c0c10; --surface: #16161c; --card: #1c1c24;
+  --border: #2a2a35; --border-focus: #3d5afe;
+  --accent: #3d5afe; --accent-hover: #536dfe; --accent-text: #fff;
+  --green: #00c853; --green-bg: rgba(0,200,83,.12);
+  --red: #ff1744; --red-bg: rgba(255,23,68,.12);
+  --yellow: #ffd600; --yellow-bg: rgba(255,214,0,.1);
+  --t1: #f0f0f5; --t2: #9e9eb0; --t3: #5c5c6e;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Consolas', monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f4f8; --surface: #fff; --card: #fff;
+    --border: #d8d8e0; --border-focus: #3d5afe;
+    --green-bg: rgba(0,200,83,.08); --red-bg: rgba(255,23,68,.06);
+    --yellow-bg: rgba(255,214,0,.08);
+    --t1: #111118; --t2: #5c5c6e; --t3: #9e9eb0;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f4f8; --surface: #fff; --card: #fff;
+  --border: #d8d8e0; --border-focus: #3d5afe;
+  --green-bg: rgba(0,200,83,.08); --red-bg: rgba(255,23,68,.06);
+  --yellow-bg: rgba(255,214,0,.08);
+  --t1: #111118; --t2: #5c5c6e; --t3: #9e9eb0;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--t1); font-family: var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+  min-height: 100dvh;
+}
+.wrap { max-width: 540px; margin: 0 auto; padding: 20px 0 40px; display: flex; flex-direction: column; gap: 16px; }
+
+/* Header */
+.header { text-align: center; padding: 12px 0 4px; }
+.header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em; color: var(--t1); }
+.header .sub { font-size: .8rem; color: var(--t3); margin-top: 4px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; background: var(--surface); border-radius: 12px; padding: 4px; border: 1px solid var(--border); }
+.tab { flex: 1; padding: 10px 0; border: none; border-radius: 9px; background: transparent; color: var(--t2); font-family: var(--font); font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+.tab.active { background: var(--accent); color: var(--accent-text); }
+.tab:not(.active):hover { color: var(--t1); }
+
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.card-title { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--t3); margin-bottom: 14px; }
+
+/* Form elements */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field + .field { margin-top: 12px; }
+.field label { font-size: .78rem; font-weight: 600; color: var(--t2); }
+.field select, .field input {
+  width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card); color: var(--t1); font-family: var(--font); font-size: .88rem;
+  outline: none; transition: border-color .15s;
+}
+.field select:focus, .field input:focus { border-color: var(--border-focus); }
+.field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239e9eb0'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+/* Buttons */
+.btn {
+  width: 100%; padding: 13px; border: none; border-radius: 11px; font-family: var(--font);
+  font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.btn-primary { background: var(--accent); color: var(--accent-text); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid transparent; }
+.btn-danger:hover { border-color: var(--red); }
+.btn-ghost { background: transparent; color: var(--t2); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--t2); color: var(--t1); }
+.btn-warn { background: var(--yellow-bg); color: var(--yellow); border: 1px solid transparent; }
+.btn-warn:hover { border-color: var(--yellow); }
+.pill-revoked { background: rgba(156,39,176,.12); color: #ce93d8; }
+.btn-row { display: flex; gap: 8px; margin-top: 14px; }
+.btn-row .btn { flex: 1; }
+
+/* Key list */
+.key-item {
+  padding: 14px; border-radius: 11px; background: var(--card); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px; transition: border-color .15s;
+}
+.key-item + .key-item { margin-top: 8px; }
+.key-item:hover { border-color: var(--accent); }
+.key-name { font-family: var(--mono); font-size: .84rem; font-weight: 500; color: var(--t1); word-break: break-all; }
+.key-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill {
+  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
+  font-size: .7rem; font-weight: 600; letter-spacing: .02em;
+}
+.pill-ok { background: var(--green-bg); color: var(--green); }
+.pill-exp { background: var(--red-bg); color: var(--red); }
+.pill-warn { background: var(--yellow-bg); color: var(--yellow); }
+.pill-info { background: rgba(61,90,254,.12); color: var(--accent); }
+.key-device { font-size: .74rem; color: var(--t3); font-family: var(--mono); word-break: break-all; }
+.key-actions { display: flex; gap: 6px; margin-top: 4px; }
+.key-actions .btn { padding: 8px 12px; font-size: .76rem; width: auto; flex: none; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface); color: var(--t1); border: 1px solid var(--border);
+  padding: 12px 20px; border-radius: 12px; font-size: .84rem; font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,.3); z-index: 100; opacity: 0; transition: all .3s ease;
+  pointer-events: none; max-width: calc(100vw - 48px); text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Stats row */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 14px; text-align: center; }
+.stat-num { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--t1); }
+.stat-label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--t3); margin-top: 2px; }
+
+/* Loading */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { text-align: center; padding: 32px 16px; color: var(--t3); font-size: .88rem; }
+
+/* Section hidden/shown */
+.section { display: none; flex-direction: column; gap: 16px; }
+.section.active { display: flex; }
+
+/* Confirm overlay */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.overlay[hidden] { display: none !important; }
+.dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 360px; width: 100%; }
+.dialog h3 { font-size: 1rem; margin-bottom: 8px; }
+.dialog p { font-size: .84rem; color: var(--t2); margin-bottom: 18px; word-break: break-all; }
+</style>
+
+<div class="wrap">
+  <div class="header">
+    <h1>Hain Key Manager</h1>
+    <div class="sub">Firebase Admin Panel</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" data-tab="create" onclick="switchTab('create')">Tao Key</button>
+    <button class="tab" data-tab="manage" onclick="switchTab('manage')">Quan Ly</button>
+    <button class="tab" data-tab="settings" onclick="switchTab('settings')">Cai Dat</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="sec-dashboard">
+    <div class="stats" id="stats">
+      <div class="stat-box"><div class="stat-num" id="st-total">—</div><div class="stat-label">Tong Key</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-active" style="color:var(--green)">—</div><div class="stat-label">Active</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-expired" style="color:var(--red)">—</div><div class="stat-label">Het Han</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-revoked" style="color:#ce93d8">—</div><div class="stat-label">Thu Hoi</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Key Gan Het Han</div>
+      <div id="expiring-list"><div class="empty"><span class="spinner"></span> Dang tai...</div></div>
+    </div>
+  </div>
+
+  <!-- CREATE -->
+  <div class="section" id="sec-create">
+    <div class="card">
+      <div class="card-title">Tao Key Moi</div>
+      <div class="field">
+        <label>Tier</label>
+        <select id="c-tier">
+          <option value="ALPHA">ALPHA — 30 ngay</option>
+          <option value="BETA">BETA — 30 ngay</option>
+          <option value="GAMMA">GAMMA — 90 ngay</option>
+          <option value="DELTA">DELTA — 90 ngay</option>
+          <option value="SIGMA">SIGMA — 14 ngay</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Custom Key (bo trong = tu tao)</label>
+        <input type="text" id="c-custom" placeholder="JBC-ALPHA-XXXX-XXXX" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>So luong</label>
+        <input type="number" id="c-count" value="1" min="1" max="50">
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="createKeys()">Tao Key</button>
+    </div>
+    <div class="card" id="created-card" hidden>
+      <div class="card-title">Key Vua Tao</div>
+      <div id="created-list"></div>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="copyCreated()">Copy Tat Ca</button>
+    </div>
+  </div>
+
+  <!-- MANAGE -->
+  <div class="section" id="sec-manage">
+    <div class="card" style="padding:12px">
+      <input type="text" id="m-search" placeholder="Tim key..." style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-family:var(--font);font-size:.86rem;outline:none">
+    </div>
+    <div id="key-list"><div class="empty"><span class="spinner"></span> Dang tai...</div></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="section" id="sec-settings">
+    <div class="card">
+      <div class="card-title">Firebase URL</div>
+      <div class="field">
+        <label>Database URL (khong co https://)</label>
+        <input type="text" id="s-url" placeholder="ten-project-default-rtdb.asia-southeast1.firebasedatabase.app" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn btn-ghost" onclick="testFb()">Test</button>
+        <button class="btn btn-primary" onclick="saveFbUrl()">Luu</button>
+      </div>
+      <div id="s-status" style="font-size:.8rem;color:var(--t3);margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Huong Dan</div>
+      <div style="font-size:.82rem;color:var(--t2);line-height:1.6">
+        1. Vao <b>Firebase Console</b> &gt; Realtime Database<br>
+        2. Copy URL database (vd: <code style="font-family:var(--mono);font-size:.78rem;color:var(--accent)">ten-project-default-rtdb.asia-southeast1.firebasedatabase.app</code>)<br>
+        3. Dan vao o tren, bam <b>Test</b> de kiem tra<br>
+        4. Bam <b>Luu</b> de luu lai
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="overlay" id="confirm-overlay" hidden>
+  <div class="dialog">
+    <h3 id="dlg-title">Xac nhan</h3>
+    <p id="dlg-msg"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeDialog()">Huy</button>
+      <button class="btn btn-danger" id="dlg-ok" onclick="dialogOk()">Xoa</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let FB = "hain-bypass-default-rtdb.asia-southeast1.firebasedatabase.app";
+const TIERS = { ALPHA: 30, BETA: 30, GAMMA: 90, DELTA: 90, SIGMA: 14 };
+let allKeys = {};
+let dialogCb = null;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'sec-' + name));
+  if (name === 'dashboard' || name === 'manage') loadKeys();
+}
+
+function toast(msg, ms) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms || 2500);
+}
+
+async function fbGet(path) {
+  const r = await fetch(`https://${FB}/${path}.json`);
+  const d = await r.json();
+  return d;
+}
+async function fbPut(path, data) {
+  await fetch(`https://${FB}/${path}.json`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+}
+async function fbPatch(path, data) {
+  await fetch(`https://${FB}/${path}.json`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+}
+async function fbDelete(path) {
+  await fetch(`https://${FB}/${path}.json`, { method: 'DELETE' });
+}
+
+function randSeg(n) {
+  const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let s = '';
+  for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)];
+  return s;
+}
+
+function genKey(tier) {
+  return `JBC-${tier}-${randSeg(4)}-${randSeg(4)}`;
+}
+
+function daysLeft(expStr) {
+  try {
+    const exp = new Date(expStr);
+    const now = new Date();
+    return Math.floor((exp - now) / 86400000);
+  } catch { return -1; }
+}
+
+function pillHtml(days) {
+  if (days <= 0) return `<span class="pill pill-exp">HET HAN</span>`;
+  if (days <= 7) return `<span class="pill pill-warn">${days} ngay</span>`;
+  return `<span class="pill pill-ok">${days} ngay</span>`;
+}
+
+async function loadKeys() {
+  try {
+    const data = await fbGet('keys');
+    allKeys = data || {};
+    renderDashboard();
+    renderManage();
+  } catch (e) {
+    toast('Loi ket noi Firebase: ' + e.message, 4000);
+  }
+}
+
+function renderDashboard() {
+  const entries = Object.entries(allKeys).filter(([,v]) => v && typeof v === 'object');
+  const now = new Date();
+  let active = 0, expired = 0, revoked = 0;
+  const expiring = [];
+
+  entries.forEach(([k, v]) => {
+    if (v.revoked === true) { revoked++; return; }
+    const d = daysLeft(v.expirationDate || '');
+    if (d > 0) { active++; if (d <= 14) expiring.push([k, v, d]); }
+    else expired++;
+  });
+
+  document.getElementById('st-total').textContent = entries.length;
+  document.getElementById('st-active').textContent = active;
+  document.getElementById('st-expired').textContent = expired;
+  document.getElementById('st-revoked').textContent = revoked;
+
+  expiring.sort((a, b) => a[2] - b[2]);
+  const el = document.getElementById('expiring-list');
+  if (!expiring.length) {
+    el.innerHTML = '<div class="empty">Khong co key nao sap het han</div>';
+    return;
+  }
+  el.innerHTML = expiring.slice(0, 8).map(([k, v, d]) =>
+    `<div class="key-item"><div class="key-name">${esc(k)}</div><div class="key-meta">${pillHtml(d)}</div></div>`
+  ).join('');
+}
+
+function renderManage() {
+  const search = (document.getElementById('m-search').value || '').toUpperCase();
+  const entries = Object.entries(allKeys)
+    .filter(([k, v]) => v && typeof v === 'object')
+    .filter(([k]) => !search || k.includes(search))
+    .sort((a, b) => {
+      const da = daysLeft(a[1].expirationDate || '');
+      const db = daysLeft(b[1].expirationDate || '');
+      return db - da;
+    });
+
+  const el = document.getElementById('key-list');
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty">Khong tim thay key nao</div>';
+    return;
+  }
+  el.innerHTML = entries.map(([k, v]) => {
+    const d = daysLeft(v.expirationDate || '');
+    const dev = v.deviceId || '';
+    const exp = (v.expirationDate || '').replace('T', ' ').replace('Z', '');
+    const revoked = v.revoked === true;
+    const statusPill = revoked ? `<span class="pill pill-revoked">THU HOI</span>` : pillHtml(d);
+    return `<div class="key-item">
+      <div class="key-name">${esc(k)}</div>
+      <div class="key-meta">${statusPill} ${dev ? `<span class="pill pill-info">Bound</span>` : ''}</div>
+      <div class="key-device">${dev ? 'Device: ' + esc(dev) : 'Chua bind device'} · Exp: ${esc(exp)}</div>
+      <div class="key-actions">
+        <button class="btn btn-ghost" onclick="copyKey('${esc(k)}')">Copy</button>
+        <button class="btn btn-ghost" onclick="unbindKey('${esc(k)}')">Go Bind</button>
+        <button class="btn btn-ghost" onclick="extendKey('${esc(k)}')">Gia Han</button>
+        ${!revoked ? `<button class="btn btn-warn" onclick="revokeKey('${esc(k)}')">Thu Hoi</button>` : ''}
+        <button class="btn btn-danger" onclick="deleteKey('${esc(k)}')">Xoa</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+async function createKeys() {
+  const tier = document.getElementById('c-tier').value;
+  const custom = document.getElementById('c-custom').value.trim().toUpperCase();
+  const count = Math.min(50, Math.max(1, parseInt(document.getElementById('c-count').value) || 1));
+  const days = TIERS[tier] || 30;
+  const exp = new Date(Date.now() + days * 86400000).toISOString().replace(/\.\d+Z/, 'Z');
+
+  const created = [];
+  for (let i = 0; i < count; i++) {
+    const key = (count === 1 && custom && custom.startsWith('JBC-')) ? custom : genKey(tier);
+    try {
+      const existing = await fbGet(`keys/${encodeURIComponent(key)}`);
+      if (existing) { toast(`Key ${key} da ton tai, bo qua`, 2000); continue; }
+      await fbPut(`keys/${encodeURIComponent(key)}`, { expirationDate: exp, deviceId: '' });
+      created.push(key);
+    } catch (e) {
+      toast('Loi: ' + e.message, 3000);
+    }
+  }
+
+  if (created.length) {
+    toast(`Da tao ${created.length} key thanh cong!`);
+    const card = document.getElementById('created-card');
+    card.hidden = false;
+    document.getElementById('created-list').innerHTML = created.map(k =>
+      `<div class="key-item" style="cursor:pointer" onclick="copyKey('${esc(k)}')"><div class="key-name">${esc(k)}</div><div class="key-meta"><span class="pill pill-ok">${days} ngay</span></div></div>`
+    ).join('');
+    card._keys = created;
+  }
+}
+
+function copyCreated() {
+  const card = document.getElementById('created-card');
+  if (card._keys && card._keys.length) {
+    const text = card._keys.join('\n');
+    try { navigator.clipboard.writeText(text); toast('Da copy ' + card._keys.length + ' key!'); }
+    catch { selectText(text); }
+  }
+}
+
+function copyKey(key) {
+  try { navigator.clipboard.writeText(key); toast('Da copy: ' + key); }
+  catch { toast(key, 5000); }
+}
+
+function showDialog(title, msg, okText, cb) {
+  document.getElementById('dlg-title').textContent = title;
+  document.getElementById('dlg-msg').textContent = msg;
+  document.getElementById('dlg-ok').textContent = okText;
+  document.getElementById('confirm-overlay').hidden = false;
+  dialogCb = cb;
+}
+function closeDialog() { document.getElementById('confirm-overlay').hidden = true; dialogCb = null; }
+function dialogOk() { if (dialogCb) dialogCb(); closeDialog(); }
+
+function deleteKey(key) {
+  showDialog('Xoa Key', `Xac nhan xoa key: ${key}?`, 'Xoa', async () => {
+    try {
+      await fbDelete(`keys/${encodeURIComponent(key)}`);
+      toast('Da xoa: ' + key);
+      delete allKeys[key];
+      renderManage();
+      renderDashboard();
+    } catch (e) { toast('Loi: ' + e.message, 3000); }
+  });
+}
+
+function unbindKey(key) {
+  showDialog('Go Bind Device', `Go bind device cho key: ${key}? Khach co the activate lai tren may khac.`, 'Go Bind', async () => {
+    try {
+      await fbPatch(`keys/${encodeURIComponent(key)}`, { deviceId: '' });
+      toast('Da go bind: ' + key);
+      if (allKeys[key]) allKeys[key].deviceId = '';
+      renderManage();
+    } catch (e) { toast('Loi: ' + e.message, 3000); }
+  });
+}
+
+function extendKey(key) {
+  const days = prompt_inline(key);
+}
+
+// Inline prompt for extend (since confirm/prompt don't work in artifacts)
+function extendKey(key) {
+  const el = document.getElementById('key-list');
+  const inp = document.createElement('div');
+  inp.className = 'card';
+  inp.style.marginBottom = '12px';
+  inp.innerHTML = `<div class="card-title">Gia han: ${esc(key)}</div>
+    <div class="field"><label>Them bao nhieu ngay</label><input type="number" id="ext-days" value="30" min="1" max="365"></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="this.closest('.card').remove()">Huy</button>
+    <button class="btn btn-primary" onclick="doExtend('${esc(key)}', this.closest('.card'))">Gia Han</button></div>`;
+  el.prepend(inp);
+  inp.querySelector('input').focus();
+}
+
+async function doExtend(key, card) {
+  const days = parseInt(card.querySelector('#ext-days').value) || 30;
+  try {
+    const rec = await fbGet(`keys/${encodeURIComponent(key)}`);
+    if (!rec) { toast('Key khong ton tai'); card.remove(); return; }
+    const oldExp = new Date(rec.expirationDate || Date.now());
+    const base = oldExp > new Date() ? oldExp : new Date();
+    const newExp = new Date(base.getTime() + days * 86400000).toISOString().replace(/\.\d+Z/, 'Z');
+    await fbPatch(`keys/${encodeURIComponent(key)}`, { expirationDate: newExp });
+    toast(`Da gia han +${days} ngay cho ${key}`);
+    if (allKeys[key]) allKeys[key].expirationDate = newExp;
+    card.remove();
+    renderManage();
+    renderDashboard();
+  } catch (e) { toast('Loi: ' + e.message, 3000); }
+}
+
+function revokeKey(key) {
+  showDialog('Thu Hoi Key', `Thu hoi key: ${key}? Key se bi vo hieu hoa, khach khong dung duoc nua.`, 'Thu Hoi', async () => {
+    try {
+      await fbPatch(`keys/${encodeURIComponent(key)}`, { revoked: true, expirationDate: '1970-01-01T00:00:00Z', deviceId: '' });
+      toast('Da thu hoi: ' + key);
+      if (allKeys[key]) { allKeys[key].revoked = true; allKeys[key].expirationDate = '1970-01-01T00:00:00Z'; allKeys[key].deviceId = ''; }
+      renderManage();
+      renderDashboard();
+    } catch (e) { toast('Loi: ' + e.message, 3000); }
+  });
+}
+
+async function testFb() {
+  const url = document.getElementById('s-url').value.trim();
+  const st = document.getElementById('s-status');
+  if (!url) { st.textContent = 'Nhap URL truoc!'; st.style.color = 'var(--red)'; return; }
+  st.textContent = 'Dang test...'; st.style.color = 'var(--t3)';
+  try {
+    const r = await fetch(`https://${url}/.json?shallow=true`);
+    if (r.ok) {
+      st.textContent = 'Ket noi thanh cong!'; st.style.color = 'var(--green)';
+    } else {
+      st.textContent = `Loi HTTP ${r.status} — kiem tra lai URL va Rules`; st.style.color = 'var(--red)';
+    }
+  } catch (e) {
+    st.textContent = 'Khong ket noi duoc: ' + e.message; st.style.color = 'var(--red)';
+  }
+}
+
+function saveFbUrl() {
+  const url = document.getElementById('s-url').value.trim();
+  if (!url) { toast('Nhap URL truoc!', 2000); return; }
+  try { localStorage.setItem('hain_fb_url', url); } catch {}
+  FB = url;
+  toast('Da luu! Dang tai lai...', 2000);
+  setTimeout(() => loadKeys(), 500);
+}
+
+// Load saved URL
+try {
+  const saved = localStorage.getItem('hain_fb_url');
+  if (saved) FB = saved;
+} catch {}
+document.getElementById('s-url').value = FB;
+
+// Search
+document.getElementById('m-search').addEventListener('input', () => renderManage());
+
+// Init
+loadKeys();
+</script>
