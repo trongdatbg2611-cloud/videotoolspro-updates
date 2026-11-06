@@ -287,6 +287,10 @@ body {
         <input type="number" id="c-count" value="1" min="1" max="50">
       </div>
       <button class="btn btn-primary" style="margin-top:16px" onclick="createKeys()">Tao Key</button>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+        <input type="number" id="c-trial-min" value="30" min="1" max="1440" style="width:70px;text-align:center">
+        <button class="btn" style="flex:1;background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow)" onclick="createTrialKey()">⏱ Tao Key Trial</button>
+      </div>
     </div>
     <div class="card" id="created-card" hidden>
       <div class="card-title">Key Vua Tao</div>
@@ -496,6 +500,21 @@ async function createKeys() {
     ).join('');
     card._keys = created;
   }
+}
+
+async function createTrialKey() {
+  const mins = Math.min(1440, Math.max(1, parseInt(document.getElementById('c-trial-min').value) || 30));
+  const key = genKey('TRIAL');
+  const exp = new Date(Date.now() + mins * 60000).toISOString().replace(/\.\d+Z/, 'Z');
+  try {
+    await fbPut(`keys/${encodeURIComponent(key)}`, { expirationDate: exp, deviceId: '' });
+    toast(`Key trial ${mins}p da tao!`);
+    const card = document.getElementById('created-card');
+    card.hidden = false;
+    document.getElementById('created-list').innerHTML =
+      `<div class="key-item" style="cursor:pointer" onclick="copyKey('${esc(key)}')"><div class="key-name">${esc(key)}</div><div class="key-meta"><span class="pill" style="background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)">${mins} phut</span></div></div>`;
+    card._keys = [key];
+  } catch (e) { toast('Loi: ' + e.message, 3000); }
 }
 
 function copyCreated() {
